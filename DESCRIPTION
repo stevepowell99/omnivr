@@ -1,0 +1,9 @@
+Package: quickplotr
+Type: Package
+Title: quickplotr
+Version: 1.0
+Date: 2014-04-07
+Author: Steve Powell
+Maintainer: Steve Powell <steve@promente.org>
+Description: Makes easy versions of ggplot2 graphics, with sensible defaults.
+License: MIT
