@@ -9,13 +9,16 @@
 #' By default, if quickplotr is provided with two variables, and the corresponding quickplotr test for 
 #' those two variables is not significant, the plot is not produced, though the returned empty string does 
 #' contain informative attributes.
-#' @import ggplot2 stringr reshape RColourBrewer
+#' @import ggplot2 stringr reshape RColorBrewer
 #' @docType package
 #' @family main
 #' @name quickplotr
 NULL
 
-
+# library(ggplot2)
+# library(stringr)
+# library(reshape)
+# library(RColorBrewer)
 
 xsig2=function(x) {  ##superceded by xsymnum, see below
   p=""
