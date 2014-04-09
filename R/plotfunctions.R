@@ -1,24 +1,24 @@
 #' Quick ggplots
 #'
-#' ggplot2 is great for providing highly customisable plots. quickplotr makes it just a little bit quicker
+#' ggplot2 is great for providing highly customisable plots. oplot makes it just a little bit quicker
 #' to provide the simplest plots - bar charts, scatterplots etc - with a consistent appearance.
 #' 
-#' The main use case for quickplotr is providing quick overview reports from the results of a questionnaire survey: 
+#' The main use case for oplot is providing quick overview reports from the results of a questionnaire survey: 
 #' providing tests of main variables against background, often sociodemographic, variables which are usually of mixed data type - nominal, ordinal etc.
-#' quickplotr provides a function quicktestr which conducts the statistical tests and provides a p-value.
-#' By default, if quickplotr is provided with two variables, and the corresponding quickplotr test for 
+#' oplot provides a function otest which conducts the statistical tests and provides a p-value.
+#' By default, if oplot is provided with two variables, and the corresponding oplot test for 
 #' those two variables is not significant, the plot is not produced, though the returned empty string does 
 #' contain informative attributes.
 #' @import ggplot2 stringr reshape RColorBrewer
 #' @docType package
 #' @family main
-#' @name quickplotr
+#' @name oplot
 NULL
 
-# library(ggplot2)
-# library(stringr)
-# library(reshape)
-# library(RColorBrewer)
+library(ggplot2)
+library(stringr)
+library(reshape)
+library(RColorBrewer)
 
 xsig2=function(x) {  ##superceded by xsymnum, see below
   p=""
@@ -52,7 +52,7 @@ xc=function(stri,sepp=" ") (strsplit(stri, sepp)[[1]])
 #' @family main
 #' @return A ggplot graphic, with additional information provided as attributes.
 #' @examples Here are some examples
-qplotr=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::brewer.pal(3,mypal)[2]
+oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::brewer.pal(3,mypal)[2]
                   ,mypal="YlOrBr",sizefac=15,xlablen=30,ylablen=30,sigLev=.05){
   q=qplot()
   xlabb=attr(xx,"label")
@@ -61,7 +61,7 @@ qplotr=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::
   xlabb=(str_wrap(xlabb,xlablen)) #set them now but will change later if necc
   ylabb=(str_wrap(ylabb,ylablen))
   
-  p=quicktestr(xx,yy)
+  p=otest(xx,yy)
   #   if(simple)browser()
   if(is.null(yy)){
     q=zbar(xx,fillcolour,histlabs,sizefac)
@@ -222,7 +222,7 @@ facet_labeller=function(var,value){
 #' @family main
 #' @return The p-value, with additional information provided as attributes.
 #' @examples Here are some examples
-quicktestr=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
+otest=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
   p=1
   
   if(is.null(yy)){

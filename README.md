@@ -3,5 +3,8 @@
 
 ## Installation
 library("devtools")
-install_github("quickplotr", "stevepowell99")
+
+install_github("omnivr", "stevepowell99")
+
+?quickplotr
 
