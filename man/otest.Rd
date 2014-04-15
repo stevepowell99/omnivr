@@ -31,7 +31,7 @@ statistics for a single variable
 Here are some examples
 }
 \seealso{
-Other main: \code{\link{oplot}}, \code{\link{oplot}},
-\code{\link{oplot-package}}
+Other main: \code{\link{classer}}; \code{\link{omnivr}},
+\code{\link{omnivr-package}}; \code{\link{oplot}}
 }
 

@@ -1,18 +1,35 @@
-#' Quick ggplots
+docume=function(pkg) system(paste0("cd ..;rm ",pkg,".pdf;R CMD Rd2pdf ",pkg,";cd ",pkg))
+
+
+#' Simple univariate and bivariate tests and plots, data type independent. 
 #'
-#' ggplot2 is great for providing highly customisable plots. oplot makes it just a little bit quicker
-#' to provide the simplest plots - bar charts, scatterplots etc - with a consistent appearance.
+#' Provides two main functions which 
+#' are both omnivores: the busy user can feed them data without needing to worry too much about data types: 
+#' - nominal, ordinal, integer or continuous.
+#' That is why the package is called \code{omnivr}: omnivorous Visualisation and Reporting. 
+#'
 #' 
-#' The main use case for oplot is providing quick overview reports from the results of a questionnaire survey: 
-#' providing tests of main variables against background, often sociodemographic, variables which are usually of mixed data type - nominal, ordinal etc.
-#' oplot provides a function otest which conducts the statistical tests and provides a p-value.
-#' By default, if oplot is provided with two variables, and the corresponding oplot test for 
-#' those two variables is not significant, the plot is not produced, though the returned empty string does 
+#' The two main functions are:
+#' \code{otest} for conducting simple tests of statistical significance
+#' \code{oplot}, a minimalist wrapper for \code{ggplot2}. 
+#' \code{ggplot2} is great for providing highly customisable plots. \code{oplot} makes it just a little bit quicker
+#' to provide the simplest plots - bar charts, scatterplots etc - with a consistent appearance and interface across data types.
+#' 
+#' The main use case for \code{omnivr} is providing quick overview reports from the 
+#' results of a questionnaire survey: 
+#' providing tests of main variables against background, often sociodemographic, 
+#' variables which are usually of mixed data type - nominal, ordinal, continuous etc.
+#' \code{oplot} provides a function otest which conducts the statistical tests and 
+#' provides a p-value.
+#' By default, if \code{oplot} is provided with two variables, 
+#' and the corresponding \code{oplot} test for 
+#' those two variables is not significant, the plot is not produced, 
+#' though the returned empty string does 
 #' contain informative attributes.
 #' @import ggplot2 stringr reshape RColorBrewer
 #' @docType package
-#' @family main
-#' @name oplot
+#' @family main 
+#' @name omnivr
 NULL
 
 library(ggplot2)
@@ -26,12 +43,17 @@ xsig2=function(x) {  ##superceded by xsymnum, see below
   p
 }
 
-#' More robust test of whether something is not blank, null etc.
-#' true if missing or null or y, otherwise false. NOTE IT GIVES F IF IT IS ANY DATA FRAME, EVEN AN EMPTY ONE
-xmb=function(x,y="") if(!xexists(x))T else{ if(length(x)==0) TRUE  else if(class(x)=="data.frame") FALSE else if(is.na(x)) TRUE else if(is.null(x)) TRUE  else if(x==y) TRUE else FALSE}
-xexists=function(x)class(try(class(x),silent=T))!="try-error"
 
-#' so you can type xc("red blue green") instead of c("red","blue","green")
+
+#' Utility function which when given a string including at least one instance of the 
+#' separator element returns a vector of strings.
+#' When you want \code{x= c("red","blue","green") }
+#' you can just type \code{x=xc("red blue green") }
+#' @param stri A string, in quotes
+#' @param sepp A string, usually a single character, to separate the elements of \code{stri}.
+#' @family utility functions
+#' @return A vector of strings.
+#' @example R/examples/ex-xc.R
 xc=function(stri,sepp=" ") (strsplit(stri, sepp)[[1]]) 
 
 
@@ -53,10 +75,12 @@ xc=function(stri,sepp=" ") (strsplit(stri, sepp)[[1]])
 #' @return A ggplot graphic, with additional information provided as attributes.
 #' @examples Here are some examples
 oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::brewer.pal(3,mypal)[2]
-                  ,mypal="YlOrBr",sizefac=15,xlablen=30,ylablen=30,sigLev=.05){
+                  ,mypal="YlOrBr",sizefac=15,xlablen=30,ylablen=30,sigLev=1){
   q=qplot()
-  xlabb=attr(xx,"label")
+  xlabb=xlabb=attr(xx,"label")
+  xlabb=ifelse(is.null(xlabb),deparse(substitute(xx)),xlabb)
   ylabb=attr(yy,"label")
+  ylabb=ifelse(is.null(ylabb),deparse(substitute(yy)),ylabb)
   library(rapport) #for skewness
   xlabb=(str_wrap(xlabb,xlablen)) #set them now but will change later if necc
   ylabb=(str_wrap(ylabb,ylablen))
@@ -68,7 +92,6 @@ oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::b
     ylabb="Count"
   }  else {
     
-    if(xmb(p))browser()
     if(p[1]==0) stop(paste0("you got a zero significance: ",xlabb," or ",ylabb))
     
     
@@ -82,26 +105,27 @@ oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::b
     else {
       
       if(classer(xx)!="con" & classer(yy)!="con"){
-        q=znn(xx,yy,sizefac)    
+        q=oplot_discrete_discrete(xx,yy,sizefac)    
       }
       
       else if(classer(xx)!="con" & classer(yy)=="con"){
-        q=znc(xx,yy)
+        q=oplot_discrete_continuous(xx,yy)
       } 
       
       else if(classer(xx)=="con" & classer(yy)!="con"){
-        q=zcn(xx,yy,mypal)
+        q=oplot_continuous_discrete(xx,yy,mypal,ylabb)
         ylabb="Proportion"
         
       }  
-      else q=zcc(xx,yy)
+      else q=oplot_continuous_continuous(xx,yy)
     }
   }
   # browser()
   
   q=q+
-    xlab(str_wrap(xlabb,xlablen))+
-    ylab(str_wrap(ylabb,ylablen))+
+#     xlab(waiver())+
+    xlab(xlabb)+
+    ylab(ylabb)+
     #     ggtitle(bquote(atop(.(tit), atop(italic(.(stat)), ""))))+
     ggtitle(attr(p,"phrase"))+
     theme(
@@ -123,16 +147,17 @@ oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::b
   q
 }
 
-zcn=function(xx,yy,mypal="YlOrBr"){
+oplot_continuous_discrete=function(xx,yy,mypal="YlOrBr",ylabb=""){
   #   browser()
   #   ggplot(data=data.frame(xx,yy),aes(yy,xx))+geom_violin(scale="count")+ stat_sum_df("mean_cl_boot",colour="orange")#smean.cl.boot is a very fast implementation of the basic nonparametric bootstrap for obtaining confidence limits for the population mean without assuming normality. These functions all delete NAs automatically.
   #   ggplot(data=dd,aes(x=dd[,1],y=dd[,2]))+geom_jitter(size=4,alpha=.3,colour="green",position = position_jitter(width = .2,height=.2))#+ stat_sum_df("mean_cl_boot",colour="orange")#
   ggplot(data=data.frame(xx,yy),aes(x=xx,fill=yy))+geom_density(position="fill",colour="black")+
-    scale_fill_brewer(guide = guide_legend(title=attr(yy,"label")),type="seq",palette=mypal,breaks=rev(levels(yy)))
+    scale_fill_brewer(guide = guide_legend(title=ylabb)
+                      ,type="seq",palette=mypal,breaks=rev(levels(yy)))
   
 }
 
-znc=function(xx,yy){
+oplot_discrete_continuous=function(xx,yy){
   dd=data.frame(xx,yy)
   #   browser()
   q=ggplot(data=dd,aes(x=xx,y=yy))+
@@ -142,7 +167,7 @@ znc=function(xx,yy){
   q#   ggplot(data=dd,aes(x=xx,y=yy))+geom_boxplot(colour="red")+geom_jitter(size=4,alpha=.3,colour="green",position = position_jitter(width = .2,height=.2))
 }
 
-znn=function(xx,yy,sizefac=9){
+oplot_discrete_discrete=function(xx,yy,sizefac=9){
   tmp=na.omit(ddply(data.frame(x2=xx,y2=yy),xc("x2 y2"),nrow))
   xt=xtabs(V1~x2+y2,data=tmp,drop.unused.levels=T)
   ct=chisq.test(xt)$stdres
@@ -159,7 +184,7 @@ znn=function(xx,yy,sizefac=9){
   q
 }
 
-zcc=function(xx,yy){
+oplot_continuous_continuous=function(xx,yy){
   dd=data.frame(xx,yy)
   q=ggplot(data=dd,aes(x=xx,y=yy))+geom_jitter(size=4,alpha=.4,colour="green")+geom_smooth(colour="orange",size=1.5)+geom_smooth(method="lm",colour="red",alpha=.1,size=1)
   attr(q,"note")="The red line is the best straight line through the points, and the orange line is the best curved line"
@@ -239,9 +264,10 @@ otest=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
   
   if(length(unique(xx))<2 | length(unique(yy))<2) p else {
     
-    havevarnames=!xmb(attr(xx,"varnames")) & !xmb(attr(yy,"varnames"))
-    notsame=T;   if (havevarnames)notsame=attr(xx,"varnames")!=attr(yy,"varnames") 
-    if(!havevarnames) warning(paste0("If you don't provide varnames I can't be sure the two variables are not identical"),attr(yy,"label"),attr(yy,"label"))
+    havevarnames=!is.null(attr(xx,"varnames")) & !is.null(attr(yy,"varnames"))
+    notsame=T;   
+    notsame=!identical(xx,yy) 
+#     if(!havevarnames) warning(paste0("If you don't provide varnames I can't be sure the two variables are not identical"),attr(yy,"label"),attr(yy,"label"))
     if(notsame | !havevarnames){
       
       if(min(length(which(table(xx)!=0)),length(which(table(yy)!=0)))>1)  {
@@ -304,14 +330,7 @@ otest=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
         
         ##TODO think if these are the best tests
         else  if(level1=="con" & level2=="con")
-        {      
-          #         ;
-          pp=cor.test(as.numeric(xx),as.numeric(yy))
-          p=pp$p.value
-          attr(p,"method")="Pearson correlation"
-          attr(p,"estimate")=pp$estimate
-          
-        }   
+          p=otest_continuous_continuous(xx,yy)
         
         
         #       else if(level1=="str" | level2 =="str") stop(paste0("You are trying to carry out stats tests for a string variable",attr(xx,"varnames")," or ",attr(yy,"varnames"),". You probably want to convert to nominal."))
@@ -339,13 +358,32 @@ otest=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
 }
 
 
+otest_continuous_continuous=function(xx,yy)
+{      
+  #         ;
+  pp=cor.test(as.numeric(xx),as.numeric(yy))
+  p=pp$p.value
+  attr(p,"method")="Pearson correlation"
+  attr(p,"estimate")=pp$estimate
+  
+  
+}   
 
 
+#' Returns data type of a vector
+#' 
+#' A simple wrapper for \code{class()}.  The way \code{class()} expresses 
+#' the difference between an ordinal an nominal variable is not convenient for our purposes.
+#' Also allows for special data types to be set using the variable attribute \code{setlevout}.
+#' @param x A vector.
+#' @family main
+#' @example R/examples/ex-classer.R
+#' @note At the moment, integer is treated as continuous.
 classer=function(x){
   y=class(x)[1]
   s=switch(EXPR=y,"integer"="con","factor"="nom","character"="str","numeric"="con","ordered"="ord","logical"="log")
-  if(!xmb(attr(x,"setlevout"))) if(attr(x,"setlevout")=="geo") s="geo"
+  if(!is.null(attr(x,"setlevout"))) s=attr(x,"setlevout")
   s
-}#just make sure you actually define ints as ints otherwise even c(1,2) comes out as numeric 
-########## fixme - treat integers specially
+}
+
 
