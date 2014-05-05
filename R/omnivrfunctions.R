@@ -26,9 +26,9 @@ docume=function(pkg) system(paste0("cd ..;rm ",pkg,".pdf;R CMD Rd2pdf ",pkg,";cd
 #' those two variables is not significant, the plot is not produced, 
 #' though the returned empty string does 
 #' contain informative attributes.
-#' @import ggplot2 stringr reshape RColorBrewer
+#' @import ggplot2 stringr reshape RColorBrewer compute.es
 #' @docType package
-#' @family main 
+#' @family main omnivr functions 
 #' @name omnivr
 NULL
 
@@ -36,6 +36,8 @@ library(ggplot2)
 library(stringr)
 library(reshape)
 library(RColorBrewer)
+library(rapport)
+library(wordcloud)
 
 xsig2=function(x) {  ##superceded by xsymnum, see below
   p=""
@@ -44,6 +46,27 @@ xsig2=function(x) {  ##superceded by xsymnum, see below
 }
 
 
+
+#' Just a wrapper for wordcloud
+#' separator element returns a 
+#' @param stri A string, in quotes
+#' @param sepp A string, usually a single character, to separate the elements of \code{stri}.
+#' @family utility functions
+#' @return A vector of strings.
+#' @example R/examples/ex-xc.R
+wplot=function(stri,cap="",min.freq=2,remove=NULL){
+  pal <- brewer.pal(9,"BuGn")
+  pal <- pal[-(1:4)]
+  
+  layout(matrix(c(1, 2), nrow=2), heights=c(.5, 5))
+  par(mar=rep(0, 4))
+  plot.new()
+  text(x=0.5, y=0.5, paste0(cap,"\nwords most frequently stated"))
+  ww=paste(stri,collapse=" ")
+  ww=unlist(str_split(ww," "))
+  ww[ww == remove]=""
+  wordcloud(ww,min.freq=min.freq,colors=pal,main="Title",bg="lightgray")
+}
 
 #' Utility function which when given a string including at least one instance of the 
 #' separator element returns a vector of strings.
@@ -71,31 +94,92 @@ xc=function(stri,sepp=" ") (strsplit(stri, sepp)[[1]])
 #' @param ylablen What line length to split for ylab
 #' @param sigLev Graphs with associated p-values above this value will not be printed.
 #' @export
-#' @family main
+#' @family main omnivr functions
 #' @return A ggplot graphic, with additional information provided as attributes.
 #' @examples Here are some examples
-oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::brewer.pal(3,mypal)[2]
-                  ,mypal="YlOrBr",sizefac=15,xlablen=30,ylablen=30,sigLev=1){
-  q=qplot()
-  xlabb=xlabb=attr(xx,"label")
+oplot=function(xx,yy=NULL,simple=FALSE,histlabs=T,na.rm=F,fillcolour=RColorBrewer::brewer.pal(3,mypal)[2]
+                  ,mypal="YlOrBr",sizefac=15,xlablen=30,ylablen=30,xbreakswrap=50,sigLev=.01,yeslabs=c("Yes","yes")){
+  if(identical(xx,yy)) return(NULL)
+#   browser()
+#   stop("lkj")
+msg=NULL
+  isblock=F
+  ######### what if xdat is a block
+  if(length(dim(xx))==2){
+    xxblock=xx
+    yyblock=yy
+    m=melt(xx,id.vars = NULL )
+    if (!any(yeslabs %in% levels(m$value))) {
+    isblock=T
+    xx=m$variable
+    xx=factor(xx,labels=sapply(levels(factor(xx)),function(x){
+      richLabs1(x,xxblock,55)
+    }))
+    attr(xx,"label")=attr(xxblock,"label")
+    yy=m$value
+    } else {
+      msg=c(msg,(("\nThis graphic relates only to the Yes answers to this block of questions. So the total of the Counts may add up to more than the total number of respondents.\n")))
+      if(is.null(yy)){
+        m=m[m$value %in% yeslabs,]
+#       mm=aggregate(m,by=list(m$variable),FUN=length)
+      xx=m$variable
+      xx=factor(xx,labels=sapply(levels(factor(xx)),function(x){
+        richLabs1(x,xxblock,55)
+      }))
+      attr(xx,"label")=attr(xxblock,"label")
+      yy=NULL    
+      } else { #so we want to plot a yes/no block against sth
+        
+        if(length(dim(yy))!=2) { #y is just a var
+#           browser()
+#         m=melt(data.frame(xx,yy),id.vars = colnames(xx) )
+          m=melt(data.frame(xx,yy),id.vars = "yy" )
+          m=m[m$value %in% yeslabs,]
+          xx=m$variable
+          xx=factor(xx,labels=sapply(levels(factor(xx)),function(x){
+            richLabs1(x,xxblock,55)
+          }))
+          attr(xx,"label")=attr(xxblock,"label")
+          
+          yy=m$yy
+          yy=factor(yy) #TODO this will revert to nominal
+          attr(yy,"label")=attr(yyblock,"label")
+          
+        } else {        #y is a block of similar vars
+          stop("is y a block of similar vars")
+        }
+
+        
+      }  
+    }
+    
+  }
+  
+  
+  xlabb=attr(xx,"label")
   xlabb=ifelse(is.null(xlabb),deparse(substitute(xx)),xlabb)
   ylabb=attr(yy,"label")
+# browser()
   ylabb=ifelse(is.null(ylabb),deparse(substitute(yy)),ylabb)
+  
+  # hack TODO
+  if(isblock) ylabb=""
+  
+#   browser()
   library(rapport) #for skewness
   xlabb=(str_wrap(xlabb,xlablen)) #set them now but will change later if necc
   ylabb=(str_wrap(ylabb,ylablen))
-  
   p=otest(xx,yy)
   #   if(simple)browser()
-  if(is.null(yy)){
+  if(is.null(yy) ){
     q=zbar(xx,fillcolour,histlabs,sizefac)
     ylabb="Count"
   }  else {
-    
-    if(p[1]==0) stop(paste0("you got a zero significance: ",xlabb," or ",ylabb))
-    
-    
-    else if(simple) {if(classer(xx) %in% xc("con ord") & classer(yy) %in% xc("con ord")){
+    if(is.null(p))stop(paste0("p failed"),xx,yy)
+#     if(p[1]==0) warning(paste0("you got a zero significance: ",xlabb," or ",ylabb))
+  
+     
+      if(simple) {if(classer(xx) %in% xc("con ord") & classer(yy) %in% xc("con ord")){
       q=simpleline(xx,yy)
     } 
     else q=simplebar(xx,yy,mypal=mypal)
@@ -103,7 +187,7 @@ oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::b
     }
     
     else {
-      
+#       browser()
       if(classer(xx)!="con" & classer(yy)!="con"){
         q=oplot_discrete_discrete(xx,yy,sizefac)    
       }
@@ -121,7 +205,9 @@ oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::b
     }
   }
   # browser()
-  
+
+
+
   q=q+
 #     xlab(waiver())+
     xlab(xlabb)+
@@ -133,19 +219,29 @@ oplot=function(xx,yy=NULL,simple=F,histlabs=T,na.rm=F,fillcolour=RColorBrewer::b
       ,axis.text.y=element_text(size=rel(1.4),hjust=1)
       ,axis.title.y=element_text(size=rel(2),angle=0)
       ,axis.title.x=element_text(size=rel(2),angle=0)
-      ,axis.text.x=element_text(angle=ifelse(classer(xx)=="con"|20>nchar(paste(names(table(xx)),collapse="")),0,-90),hjust=0,size=rel(1.8))        
+      ,axis.text.x=element_text(angle=ifelse(classer(xx)=="con" | 20>nchar(paste(names(table(xx)),collapse="")),0,-90),hjust=0,size=rel(1.4))        
       
-#   ,panel.border = element_rect(size=rel(7))
-#                                ,colour = 
-#                                  if(!is.null(yy))paste(cut(p[1],
-#                                           breaks=c(-1,.001,.005,.01,.05,1),labels=xc("red indianred1 pink2 mistyrose lightgrey"))) 
-#                                    else if(is.null(yy)) ifelse(classer(xx)!="geo","orange","blue")  else "lightgrey")
+
       
     )
   # browser()
-  if(p>sigLev) q=""
+
+#TODO a hack cos we dont have full support for integers
+if(!is.null(attr(xx,"setlevout"))) if(attr(xx,"setlevout")=="int") q=q+
+  scale_x_discrete(breaks=c(0:max(table(xx)))) 
+#TODO a hack cos we dont have full support for integers
+
+
+if(!is.null(p)) if(!is.na(p))   if(p<sigLev | is.null(yy)) if(p!=0) {
+# cat("\n - ",attr(q,"note"))
+  q=q+scale_x_discrete(breaks=levels(factor(xx)),labels=str_wrap(levels(factor(xx)),xbreakswrap))
+  q=q+scale_y_discrete(breaks=levels(factor(yy)),labels=str_wrap(levels(factor(yy)),xbreakswrap))
+  attr(q,"note")=c(attr(q,"note"),msg)
   q
 }
+}
+
+
 
 oplot_continuous_discrete=function(xx,yy,mypal="YlOrBr",ylabb=""){
   #   browser()
@@ -168,19 +264,22 @@ oplot_discrete_continuous=function(xx,yy){
 }
 
 oplot_discrete_discrete=function(xx,yy,sizefac=9){
+#   cat(attr(xx,"label"),attr(yy,"label"))
+  warning(attr(xx,"label"),attr(yy,"label"))
   tmp=na.omit(ddply(data.frame(x2=xx,y2=yy),xc("x2 y2"),nrow))
   xt=xtabs(V1~x2+y2,data=tmp,drop.unused.levels=T)
   ct=chisq.test(xt)$stdres
+#   browser()
   mr=melt(ct)
   tmp2=merge(tmp,mr,all.x=T)
   tmp2$large=tmp2$V1#ifelse(rep(large,nrow(tmp2)),"",tmp2$V1)
-  q= ggplot(tmp2,aes(x=x2,y=y2,size=V1,colour=value,label=large))+
-    theme(legend.position="none")+
-    scale_colour_gradient2(low="blue",mid="grey",high="red")+
-    geom_point(colour="lightgreen",alpha=1)+
+  q= ggplot(tmp2,aes(x=x2,y=y2,size=V1+5,colour=value,label=large))+
+#     theme(legend.position="none")+
+    scale_colour_gradient2(low="blue",mid="grey",high="red",labels=xc("red = more than expected;neutral;blue = less than expected",sep=";"),breaks=c(2,0,-2),guide= guide_legend(title = "Colour"))+
+    geom_point(colour=brewer.pal(9,"BuGn")[2],alpha=1)+
     geom_text()+
-    scale_size_area(max_size=4000/(sizefac*sizefac))
-  attr(q,"note")="Bigger numbers are written bigger. \nSurprisingly large numbers are more red"
+    scale_size_area(max_size=4000/(sizefac*sizefac),guide="none")
+  attr(q,"note")="Bigger numbers are written bigger. Surprisingly large numbers are more red and suprisingly small numbers are more blue."
   q
 }
 
@@ -242,14 +341,14 @@ facet_labeller=function(var,value){
 #' @param yy If provided, a second vector of the same length as xx.
 #' @param level1 Force type of first variable
 #' @param level2 Force type of second variable
-#' @param spv Whether to simulate p values for chi-squared tests. May take a while.
+#' @param spv Whether to simulate p values. At the moment only used for chi-squared tests. May take a while.
 #' @export
-#' @family main
+#' @family main omnivr functions
 #' @return The p-value, with additional information provided as attributes.
-#' @examples Here are some examples
-otest=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
+#' @example R/examples/ex-otest.R
+otest=function(xx,yy=NULL,spv=FALSE,...){
   p=1
-  
+  warning(attr(xx,"ncol"),attr(yy,"ncol"))
   if(is.null(yy)){
     
     if(classer(xx) %in% xc("int con")){
@@ -264,85 +363,43 @@ otest=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
   
   if(length(unique(xx))<2 | length(unique(yy))<2) p else {
     
-    havevarnames=!is.null(attr(xx,"varnames")) & !is.null(attr(yy,"varnames"))
-    notsame=T;   
-    notsame=!identical(xx,yy) 
-#     if(!havevarnames) warning(paste0("If you don't provide varnames I can't be sure the two variables are not identical"),attr(yy,"label"),attr(yy,"label"))
-    if(notsame | !havevarnames){
+
       
       if(min(length(which(table(xx)!=0)),length(which(table(yy)!=0)))>1)  {
         level1=classer(xx)
         level2=classer(yy)
+#         browser()
+        if(is.null(level1)) level1="nom"
+        if(is.null(level2)) level2="nom"
         if(level1=="str") level1="nom"
         if(level2=="str") level2="nom"
         
-        #       if(attr(xx,"ncol")==2 & attr(yy,"ncol")==9)
-        if(level1 %in% xc("nom geo") & level2 %in% xc("nom geo"))    {if(class(try(chisq.test(xx,yy,...)))!="try-error"){
-          pp=chisq.test(xx,factor(yy),simulate.p.value=spv,...)
-          p=pp$p.value;attr(p,"method")="Chi-squared test"
-          attr(p,"estimate")=pp$statistic
-        }else p=1
-        }
+if(class(try(do.call(paste0("otest_",level1,"_",level2),list(xx,yy,spv))))=="try-error") {
+  warning(paste("This test did not work",classer(xx),classer(yy)))
+  
+    p=NA
+    attr(p,"method")="Kruskal but failed"
+    attr(p,"estimate")=NA
+    attr(p,"PRE")=NA
+  
+  } 
+       else  
+    
+    p=do.call(paste0("otest_",level1,"_",level2),list(xx,yy,spv))
         
-        else if(level1=="ord" & level2 %in% xc("nom geo")) 
-        {if(class(try(kruskal.test(xx,factor(yy),...)))!="try-error"){
-          pp=kruskal.test(xx,factor(yy),...)
-          ppp<<-pp
-          p=pp$p.value
-          attr(p,"estimate")=pp$statistic
-        } else {
-          p=1
-          attr(p,"method")="Kruskal test"
-        }
-        }
-        
-        else if(level1 %in% xc("nom geo") & level2=="ord")    
-        {if(class(try(kruskal.test(yy,factor(xx),...)))!="try-error"){
-          pp=kruskal.test(yy,factor(xx),...)
-          p=pp$p.value;attr(p,"estimate")=pp$statistic
-        } else {
-          p=1
-          attr(p,"method")="Kruskal test"
-        }
-        }
-        
-        else  if((level1=="ord" & level2=="ord") | (level1=="ord" & level2=="con") | (level1=="con" & level2=="ord")) {if(class(try(cor.test(as.numeric(xx),as.numeric (yy),method="spearman",...)))!="try-error") {pp=cor.test(as.numeric(xx),as.numeric (yy),method="spearman",...);p=pp$p.value;attr(p,"method")="Spearman rho.";attr(p,"estimate")=pp$estimate} else cat("not enough finite observations for Spearman")}
-        
-        else  if( level1=="con" & level2 %in% xc("nom geo")) {
-          if(class(try(anova(lm(as.numeric(xx)~yy))))!="try-error"){
-            pp=anova(lm(as.numeric(xx)~yy));p=pp$"Pr(>F)"[1];attr(p,"estimate")=pp["F value"];attr(p,"method")="ANOVA F"
-          }else p=1}   
-        
-        else  if( level1 %in% xc("nom geo") & level2 %in% xc("con")) {
-          if(class(try(anova(lm(as.numeric(yy)~xx))))!="try-error"){
-            pp=anova(lm(as.numeric(yy)~xx));p=pp$"Pr(>F)"[1];attr(p,"estimate")=pp["F value"];attr(p,"method")="ANOVA F"
-          }else p=1}   
-        
-        else  if( level1=="con" & level2 %in% xc("ord")) {
-          if(class(try(anova(lm(as.numeric(xx)~yy))))!="try-error"){
-            pp=anova(lm(as.numeric(xx)~yy));p=pp$"Pr(>F)"[1];attr(p,"estimate")=pp["F value"];attr(p,"method")="ANOVA F"
-          }else p=1}   
-        
-        else  if( level1=="ord" & level2 %in% xc("con")) {
-          if(class(try(anova(lm(as.numeric(yy)~xx))))!="try-error"){
-            pp=anova(lm(as.numeric(yy)~xx));p=pp$"Pr(>F)"[1];attr(p,"estimate")=pp["F value"];attr(p,"method")="ANOVA F"
-          }else p=1}   
-        
-        ##TODO think if these are the best tests
-        else  if(level1=="con" & level2=="con")
-          p=otest_continuous_continuous(xx,yy)
-        
-        
-        #       else if(level1=="str" | level2 =="str") stop(paste0("You are trying to carry out stats tests for a string variable",attr(xx,"varnames")," or ",attr(yy,"varnames"),". You probably want to convert to nominal."))
-        else {p=1
-              attr(p,"estimate")=NULL
-        }
+
         attr(p,"N")=nrow(na.omit(data.frame(xx,yy)))
+if(identical(xx,yy)) {attr(p,"PRE")=NA;attr(p,"estimate")=NA}
       }
-    } else {p=1;attr(p,"N")=sum(!is.na(xx))} #could put stuff here for single-var analysis
     
-    if(is.na(p))p=1
-    
+   
+  if(is.na(p) | is.nan(p))  {
+    p=NA
+    attr(p,"method")="Kruskal but failed"
+    attr(p,"estimate")=NA
+    attr(p,"PRE")=NA
+  } 
+
     attr(p,"phrase")=paste0(
       "Significance: ",
       xsig2(p[1]),
@@ -358,16 +415,82 @@ otest=function(xx,yy=NULL,level1="nom",level2="nom",spv=F,...){
 }
 
 
-otest_continuous_continuous=function(xx,yy)
+
+otest_con_con=function(xx,yy,spv=FALSE)
 {      
   #         ;
   pp=cor.test(as.numeric(xx),as.numeric(yy))
   p=pp$p.value
   attr(p,"method")="Pearson correlation"
-  attr(p,"estimate")=pp$estimate
-  
-  
+  attr(p,"estimate")=as.vector(pp$estimate)
+  attr(p,"PRE")=as.vector(pp$estimate)
+#   ES=pwr.r.test(n = nrow(na.omit(data.frame(xx,yy))), r = attr(p,"estimate"), sig.level = p, alternative = c("two.sided"))
+  p
 }   
+
+otest_ord_ord=function(xx,yy,spv=FALSE)
+{      
+  pp=cor.test(as.numeric(xx),as.numeric (yy),method="spearman")
+  p=pp$p.value
+  attr(p,"method")="Spearman rho."
+  attr(p,"estimate")=pp$estimate
+  attr(p,"PRE")=as.vector(pp$estimate) #debatable
+
+  
+#   attr(p,"ES")=chies(pp$statistic,nrow(na.omit(data.frame(xx,yy))))$r
+  
+  p
+} 
+
+
+otest_nom_nom=function(xx,yy,spv=FALSE)
+{      
+    pp=chisq.test(factor(xx),factor(yy),simulate.p.value=spv)
+    p=pp$p.value;attr(p,"method")="Chi-squared test"
+    attr(p,"estimate")=pp$statistic  
+#     tab=prop.table(table(xx,yy))
+#     attr(p,"ES")=chies(pp$statistic,nrow(na.omit(data.frame(xx,yy))))$r
+  attr(p,"PRE")=as.vector(lambda.test(table(xx,yy),2) )#TODO check direction 2 or 1
+  # Goodman and Kruskal's lambda
+
+  p
+} 
+
+
+otest_ord_con=function(yy,xx,spv=FALSE)
+{      
+    pp=anova(lm(xx~yy))
+    p=pp$"Pr(>F)"[1]
+    attr(p,"estimate")=pp[1,"F value"]
+    attr(p,"method")="ANOVA F"
+    attr(p,"PRE")=as.vector(cor.test(as.numeric(xx),as.numeric (yy),method="spearman")$estimate) #debatable
+    
+  p
+}   
+otest_con_ord=function(xx,yy,spv=F)otest_ord_con(yy,xx,spv) #note with lm it does not make any difference which way round they are
+
+
+otest_ord_nom=function(xx,yy,spv=FALSE)
+{      
+  pp=kruskal.test(xx,yy)
+  p=pp$p.value
+  attr(p,"estimate")=pp$statistic
+  attr(p,"method")="Kruskal test"
+  attr(p,"PRE")=as.vector(lambda.test(table(xx,yy),2)) #TODO check direction 2 or 1
+  # Goodman and Kruskal's lambda. maybe not best for this case
+  
+  p
+} 
+otest_nom_ord=otest_ord_nom
+otest_con_nom=otest_nom_ord
+otest_nom_con=otest_nom_ord
+
+otest_str_con= otest_nom_con
+otest_str_ord= otest_nom_ord
+otest_str_nom= otest_nom_nom
+otest_con_str= otest_con_nom
+otest_ord_str= otest_nom_ord
+otest_nom_str= otest_nom_nom
 
 
 #' Returns data type of a vector
@@ -376,14 +499,50 @@ otest_continuous_continuous=function(xx,yy)
 #' the difference between an ordinal an nominal variable is not convenient for our purposes.
 #' Also allows for special data types to be set using the variable attribute \code{setlevout}.
 #' @param x A vector.
-#' @family main
+#' @family main omnivr functions
 #' @example R/examples/ex-classer.R
 #' @note At the moment, integer is treated as continuous.
 classer=function(x){
   y=class(x)[1]
   s=switch(EXPR=y,"integer"="con","factor"="nom","character"="str","numeric"="con","ordered"="ord","logical"="log")
-  if(!is.null(attr(x,"setlevout"))) s=attr(x,"setlevout")
+  att=attr(x,"setlevout")
+  if(!is.null(att)) if(!(att %in% xc("con nom str con ord int"))) s=att #you can't force a variable to be one of these types if it is not
   s
 }
 
 
+
+#' Wrapper for riverplot
+#' 
+#' A simple wrapper for \code{riverplot()}.  
+#' If same values are found in each column, same colour will be used for each
+#' @param m an edge matrix with just two columns, each row is one case joining a and b. 
+#' e.g. mtcars[,3:4]
+#' you could argue that to be consistent with oplot it should take x and y as input not a dataframe of them. but this way it is easier to generalise to more 
+#' @family main omnivr functions
+#' @note At the moment, integer is treated as continuous.
+sankplot=function(mm,minedge=1,strw=12){
+  library(riverplot)
+  mo=na.omit(mm)
+  m=data.frame(sapply(mo,as.character),stringsAsFactors = F)
+  m=data.frame(sapply(m,str_wrap,strw),stringsAsFactors = F)
+  labels=unique(unlist(m))
+  col=rainbow(length(labels))
+  col=colorRampPaletteAlpha(c( "#FF000033", "#00FF0033" ))(length(labels))
+  concol=data.frame(labels,col,stringsAsFactors = F)
+  m=data.frame(t(apply(m,1,paste,1:2)),stringsAsFactors = F)
+  colnames(m)=paste0("N",1:2)
+  
+  edges=as.data.frame(summarise(group_by(m,N1,N2),Value=length(N1)))
+  edges=edges[edges$Value>minedge,]
+  nodes=data.frame(rbind(
+    cbind(paste(unique(edges$N1)),1),
+    cbind(paste(unique(edges$N2)),2) #have to differentiate because the package will complain if nodes in 2 cols have same name
+  ),stringsAsFactors=F)
+  nodes$X2=as.numeric(nodes$X2)
+  nodes$labels=sapply(nodes[,1],str_sub,1,-3)
+  nodesc=merge(nodes,concol,by="labels")
+  colnames(nodesc)[2:3]=c("ID","x")
+  # nodesc$col[nodesc$x==2]=NA
+  makeRiver(nodesc,edges)
+}
