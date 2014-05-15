@@ -32,7 +32,8 @@ not significant, the plot is not produced, though the
 returned empty string does contain informative attributes.
 }
 \seealso{
-Other main: \code{\link{classer}}; \code{\link{oplot}};
-\code{\link{otest}}
+Other main omnivr functions: \code{\link{classer}};
+\code{\link{oplot}}; \code{\link{otest}};
+\code{\link{sankplot}}
 }
 

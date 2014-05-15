@@ -1,8 +1,8 @@
-\name{loopr}
-\alias{loopr}
-\title{Loops through one or two datasets}
+\name{ggheat}
+\alias{ggheat}
+\title{Produces a ggplot heatmap}
 \usage{
-loopr(xdat, ydat = NULL, fun = oplot, duplicatesOK = TRUE, ...)
+ggheat(xdat, ydat = xdat)
 }
 \arguments{
   \item{xdat}{dataset}
@@ -12,23 +12,23 @@ loopr(xdat, ydat = NULL, fun = oplot, duplicatesOK = TRUE, ...)
   \item{fun}{function e.g. correlation to relate the
   datasets}
 
-  \item{extra}{named vector of arguments to fun e.g.}
+  \item{ydat}{if given, a second dataset}
 
-  \item{extra}{named vector of arguments to fun e.g.}
+  \item{ydat}{if given, a second dataset}
 }
 \value{
-Some stuff
+A heatmap.2 plot
 }
 \description{
-Loops through one or two datasets
+Produces a ggplot heatmap
 }
 \examples{
 Here are some examples
 }
 \seealso{
 Other experimental: \code{\link{dummy.code.lab}};
-\code{\link{findr}}; \code{\link{ggheat}};
-\code{\link{loopr2}}; \code{\link{omnicor}};
+\code{\link{findr}}; \code{\link{loopr2}};
+\code{\link{loopr}}; \code{\link{omnicor}};
 \code{\link{outerF}}; \code{\link{pseudocor}};
 \code{\link{sigHeat}}; \code{\link{writeprop}};
 \code{\link{xt}}

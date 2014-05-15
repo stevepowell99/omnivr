@@ -82,8 +82,10 @@ xc=function(stri,sepp=" ") (strsplit(stri, sepp)[[1]])
 
 #' Provide univariate or bivariate ggplot graphic according to the data type of the input variables.
 #'
-#' @param xx A vector.
+#' @param xx A vector, dataframe, table or list.
 #' @param yy If provided, a second vector of the same length as xx.
+#' @param zz If provided, the statistic to be plotted.
+#' @param ll If provided, the label to be plotted.
 #' @param simple Whether to provide just a simple bar chart or line plot.
 #' @param histlabs Whether to provide Ns for bar charts.
 #' @param na.rm Whether to exclude missing values.
@@ -97,121 +99,85 @@ xc=function(stri,sepp=" ") (strsplit(stri, sepp)[[1]])
 #' @family main omnivr functions
 #' @return A ggplot graphic, with additional information provided as attributes.
 #' @examples Here are some examples
-oplot=function(xx,yy=NULL,simple=FALSE,histlabs=T,na.rm=F,fillcolour=RColorBrewer::brewer.pal(3,mypal)[2]
-                  ,mypal="YlOrBr",sizefac=15,xlablen=30,ylablen=30,xbreakswrap=50,sigLev=.01,yeslabs=c("Yes","yes")){
-  if(identical(xx,yy)) return(NULL)
-#   browser()
-#   stop("lkj")
-msg=NULL
+oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillcolour=RColorBrewer::brewer.pal(3,mypal)[2]
+               ,mypal="YlOrBr",sizefac=15,reorder=F,xlabb=NULL,ylabb=NULL,xlablen=30,ylablen=30,
+               xbreakswrap=50,ybreakswrap=50,sigLev=.01,xfilter=NULL,yfilter=NULL,
+               usemultichoicelabs=F,...){
+  # browser()
+  #   if(identical(xx,yy)) return(NULL)
+  #   stop("lkj")
+  msg=NULL
   isblock=F
   ######### what if xdat is a block
-  if(length(dim(xx))==2){
-    xxblock=xx
-    yyblock=yy
-    m=melt(xx,id.vars = NULL )
-    if (!any(yeslabs %in% levels(m$value))) {
-    isblock=T
-    xx=m$variable
-    xx=factor(xx,labels=sapply(levels(factor(xx)),function(x){
-      richLabs1(x,xxblock,55)
-    }))
-    attr(xx,"label")=attr(xxblock,"label")
-    yy=m$value
-    } else {
-      msg=c(msg,(("\nThis graphic relates only to the Yes answers to this block of questions. So the total of the Counts may add up to more than the total number of respondents.\n")))
-      if(is.null(yy)){
-        m=m[m$value %in% yeslabs,]
-#       mm=aggregate(m,by=list(m$variable),FUN=length)
-      xx=m$variable
-      xx=factor(xx,labels=sapply(levels(factor(xx)),function(x){
-        richLabs1(x,xxblock,55)
-      }))
-      attr(xx,"label")=attr(xxblock,"label")
-      yy=NULL    
-      } else { #so we want to plot a yes/no block against sth
-        
-        if(length(dim(yy))!=2) { #y is just a var
-#           browser()
-#         m=melt(data.frame(xx,yy),id.vars = colnames(xx) )
-          m=melt(data.frame(xx,yy),id.vars = "yy" )
-          m=m[m$value %in% yeslabs,]
-          xx=m$variable
-          xx=factor(xx,labels=sapply(levels(factor(xx)),function(x){
-            richLabs1(x,xxblock,55)
-          }))
-          attr(xx,"label")=attr(xxblock,"label")
-          
-          yy=m$yy
-          yy=factor(yy) #TODO this will revert to nominal
-          attr(yy,"label")=attr(yyblock,"label")
-          
-        } else {        #y is a block of similar vars
-          stop("is y a block of similar vars")
-        }
-
-        
-      }  
-    }
-    
-  }
   
-  
+  #   xlabb=ifelse(is.null(xlabb),labb(xx))
+  #   ylabb=ifelse(is.null(ylabb),labb(yy))
+  ylabb=attr(yy,"label")
+  ylabb=ifelse(is.null(ylabb),deparse(substitute(yy)),ylabb)
   xlabb=attr(xx,"label")
   xlabb=ifelse(is.null(xlabb),deparse(substitute(xx)),xlabb)
-  ylabb=attr(yy,"label")
-# browser()
-  ylabb=ifelse(is.null(ylabb),deparse(substitute(yy)),ylabb)
   
+#   browser()
+  o=otrans(xx,yy,zz=zz,xfilter=xfilter,yfilter=yfilter,usemultichoicelabs=usemultichoicelabs,...)
+  p=attr(o,"p")
+  
+  xx=o$xx
+  yy=o$yy
+  if(!is.null(o$zz))zz=o$zz
+  if(!is.null(o$aa))aa=o$aa else aa=NULL
+  if(!is.null(o$ll))ll=o$ll else ll=NULL
+  
+  
+  #   browser()
   # hack TODO
   if(isblock) ylabb=""
   
-#   browser()
+  #   browser()
   library(rapport) #for skewness
   xlabb=(str_wrap(xlabb,xlablen)) #set them now but will change later if necc
   ylabb=(str_wrap(ylabb,ylablen))
-  p=otest(xx,yy)
+  #   p=otest(xx,yy)
   #   if(simple)browser()
   if(is.null(yy) ){
     q=zbar(xx,fillcolour,histlabs,sizefac)
     ylabb="Count"
   }  else {
     if(is.null(p))stop(paste0("p failed"),xx,yy)
-#     if(p[1]==0) warning(paste0("you got a zero significance: ",xlabb," or ",ylabb))
-  
-     
-      if(simple) {if(classer(xx) %in% xc("con ord") & classer(yy) %in% xc("con ord")){
-      q=simpleline(xx,yy)
-    } 
-    else q=simplebar(xx,yy,mypal=mypal)
-    ylabb="Count"
+    #     if(p[1]==0) warning(paste0("you got a zero significance: ",xlabb," or ",ylabb))
+    
+    
+    if(simple) {
+      if(classer(xx) %in% xc("con ord") & classer(yy) %in% xc("con ord")){
+        q=simpleline(xx,yy)
+      } 
+      else q=simplebar(xx,yy,mypal=mypal)
+      ylabb="Count"
     }
     
     else {
-#       browser()
+      #       browser()
       if(classer(xx)!="con" & classer(yy)!="con"){
-        q=oplot_discrete_discrete(xx,yy,sizefac)    
+        q=oplot_discrete_discrete(xx,yy,zz=zz,aa=aa,ll=ll,sizefac=sizefac)    
       }
       
       else if(classer(xx)!="con" & classer(yy)=="con"){
-        q=oplot_discrete_continuous(xx,yy)
+        q=oplot_discrete_continuous(xx,yy,zz=zz)
       } 
       
       else if(classer(xx)=="con" & classer(yy)!="con"){
-        q=oplot_continuous_discrete(xx,yy,mypal,ylabb)
+        q=oplot_continuous_discrete(xx,yy,zz=zz,mypal=mypal,ylabb=ylabb)
         ylabb="Proportion"
         
       }  
       else q=oplot_continuous_continuous(xx,yy)
     }
   }
-  # browser()
-
-
-
+  
+  
+  if(ylabb!="NULL") q=q+ylab(ylabb) else q=q+ylab("") 
   q=q+
-#     xlab(waiver())+
+    #     xlab(waiver())+
     xlab(xlabb)+
-    ylab(ylabb)+
     #     ggtitle(bquote(atop(.(tit), atop(italic(.(stat)), ""))))+
     ggtitle(attr(p,"phrase"))+
     theme(
@@ -221,29 +187,31 @@ msg=NULL
       ,axis.title.x=element_text(size=rel(2),angle=0)
       ,axis.text.x=element_text(angle=ifelse(classer(xx)=="con" | 20>nchar(paste(names(table(xx)),collapse="")),0,-90),hjust=0,size=rel(1.4))        
       
-
+      
       
     )
   # browser()
-
-#TODO a hack cos we dont have full support for integers
-if(!is.null(attr(xx,"setlevout"))) if(attr(xx,"setlevout")=="int") q=q+
-  scale_x_discrete(breaks=c(0:max(table(xx)))) 
-#TODO a hack cos we dont have full support for integers
-
-
-if(!is.null(p)) if(!is.na(p))   if(p<sigLev | is.null(yy)) if(p!=0) {
-# cat("\n - ",attr(q,"note"))
-  q=q+scale_x_discrete(breaks=levels(factor(xx)),labels=str_wrap(levels(factor(xx)),xbreakswrap))
-  q=q+scale_y_discrete(breaks=levels(factor(yy)),labels=str_wrap(levels(factor(yy)),xbreakswrap))
-  attr(q,"note")=c(attr(q,"note"),msg)
-  q
+  
+  # browser()
+  #TODO a hack cos we dont have full support for integers
+  if(!is.null(attr(xx,"setlevout"))) if(attr(xx,"setlevout")=="int") q=q+
+    scale_x_discrete(breaks=c(0:max(table(xx)))) 
+  #TODO a hack cos we dont have full support for integers
+  
+  
+  if(!is.null(p)) if(!is.na(p))   if(p<=sigLev | is.null(yy)) {
+    # cat("\n - ",attr(q,"note"))
+    if(classer(xx)!="con")q=q+scale_x_discrete(breaks=levels(factor(xx)),labels=str_wrap(levels(factor(xx)),xbreakswrap))
+    if(!is.null(yy))if(classer(yy)!="con" & classer(xx)!="con")q=q+scale_y_discrete(breaks=levels(factor(yy)),labels=str_wrap(levels(factor(yy)),ybreakswrap))
+    attr(q,"note")=c(attr(q,"note"),msg)
+    
+    q
+  } 
 }
-}
 
 
 
-oplot_continuous_discrete=function(xx,yy,mypal="YlOrBr",ylabb=""){
+oplot_continuous_discrete=function(xx,yy,zz=NULL,mypal="YlOrBr",ylabb=""){
   #   browser()
   #   ggplot(data=data.frame(xx,yy),aes(yy,xx))+geom_violin(scale="count")+ stat_sum_df("mean_cl_boot",colour="orange")#smean.cl.boot is a very fast implementation of the basic nonparametric bootstrap for obtaining confidence limits for the population mean without assuming normality. These functions all delete NAs automatically.
   #   ggplot(data=dd,aes(x=dd[,1],y=dd[,2]))+geom_jitter(size=4,alpha=.3,colour="green",position = position_jitter(width = .2,height=.2))#+ stat_sum_df("mean_cl_boot",colour="orange")#
@@ -253,7 +221,7 @@ oplot_continuous_discrete=function(xx,yy,mypal="YlOrBr",ylabb=""){
   
 }
 
-oplot_discrete_continuous=function(xx,yy){
+oplot_discrete_continuous=function(xx,yy,zz=NULL){
   dd=data.frame(xx,yy)
   #   browser()
   q=ggplot(data=dd,aes(x=xx,y=yy))+
@@ -263,36 +231,44 @@ oplot_discrete_continuous=function(xx,yy){
   q#   ggplot(data=dd,aes(x=xx,y=yy))+geom_boxplot(colour="red")+geom_jitter(size=4,alpha=.3,colour="green",position = position_jitter(width = .2,height=.2))
 }
 
-oplot_discrete_discrete=function(xx,yy,sizefac=9){
-#   cat(attr(xx,"label"),attr(yy,"label"))
-  warning(attr(xx,"label"),attr(yy,"label"))
-  tmp=na.omit(ddply(data.frame(x2=xx,y2=yy),xc("x2 y2"),nrow))
-  xt=xtabs(V1~x2+y2,data=tmp,drop.unused.levels=T)
-  ct=chisq.test(xt)$stdres
-#   browser()
-  mr=melt(ct)
-  tmp2=merge(tmp,mr,all.x=T)
-  tmp2$large=tmp2$V1#ifelse(rep(large,nrow(tmp2)),"",tmp2$V1)
-  q= ggplot(tmp2,aes(x=x2,y=y2,size=V1+5,colour=value,label=large))+
-#     theme(legend.position="none")+
-    scale_colour_gradient2(low="blue",mid="grey",high="red",labels=xc("red = more than expected;neutral;blue = less than expected",sep=";"),breaks=c(2,0,-2),guide= guide_legend(title = "Colour"))+
-    geom_point(colour=brewer.pal(9,"BuGn")[2],alpha=1)+
-    geom_text()+
-    scale_size_area(max_size=4000/(sizefac*sizefac),guide="none")
-  attr(q,"note")="Bigger numbers are written bigger. Surprisingly large numbers are more red and suprisingly small numbers are more blue."
+oplot_discrete_discrete=function(xx,yy,zz=NULL,aa=aa,ll=NULL,sizefac=11,reorder=F){
+  #   cat(attr(xx,"label"),attr(yy,"label"))
+  #   warning(attr(xx,"label"),attr(yy,"label"))
+  #   browser()
+  tmp2=data.frame(x2=xx,y2=yy,zz=zz,aa=aa,ll=ll,value=zz,large=ll)
+  
+  if( all(aa==1)) { #all sizes the same so it must be a ggheat
+    q= ggplot(tmp2,aes(x=x2,y=y2,fill=zz,label=ll))+
+      geom_tile() +
+      geom_text(size=5,colour="black")
+    attr(q,"note")="my ggheatnote."
+    q=q+scale_fill_gradient2(low="blue",mid="grey",high="red",labels=xc("positive connection;neutral;negative connection",sep=";"),breaks=c(max(tmp2$zz),0,min(tmp2$zz)),guide= guide_legend(title = "Colour"))
+    
+  } else {
+    q= ggplot(tmp2,aes(x=x2,y=y2,size=aa+4,colour=zz,label=ll))+
+      geom_point(alpha=.5)+
+      geom_text(size=5,colour="black")+
+      scale_size_area(max_size=4000/(sizefac*sizefac),guide="none")
+    attr(q,"note")="Bigger numbers are written bigger. Surprisingly large numbers are more red and suprisingly small numbers are more blue."
+    q=q+scale_colour_gradient2(low="blue",mid="grey",high="red",labels=xc("more than expected;neutral;less than expected",sep=";"),breaks=c(max(tmp2$zz),0,min(tmp2$zz)),guide= guide_legend(title = "Colour"))
+    
+  }
   q
 }
 
 oplot_continuous_continuous=function(xx,yy){
   dd=data.frame(xx,yy)
-  q=ggplot(data=dd,aes(x=xx,y=yy))+geom_jitter(size=4,alpha=.4,colour="green")+geom_smooth(colour="orange",size=1.5)+geom_smooth(method="lm",colour="red",alpha=.1,size=1)
+  q=ggplot(data=dd,aes(x=xx,y=yy))+geom_jitter(size=4,alpha=.4,colour="green")+geom_smooth(colour="orange",size=1.5)#+geom_smooth(method="lm",colour="red",alpha=.1,size=1)
   attr(q,"note")="The red line is the best straight line through the points, and the orange line is the best curved line"
   q
 }
 
-zbar=function(xx,fillcolour,histlabs,sizefac=9){
-  ggplot(data=data.frame(xx),aes(x=xx))+geom_histogram(fill=fillcolour)+
+zbar=function(xx,fillcolour="orange",histlabs=T,sizefac=9){
+  o=ggplot(data=data.frame(xx),aes(x=xx))+geom_histogram(fill=fillcolour)+
     if(histlabs)stat_bin(aes(label=..count..), geom="text", position="identity",size=100/sizefac,colour="darkgreen") 
+  attr(o,"nx")=length(unique(xx))
+  attr(o,"note")="mynotekill"
+  o  
 }
 
 simpleline=function(xx,yy){ # to print out just a kind of multiple histogram unless both are at least ordinal, in which case a line graph
@@ -322,16 +298,19 @@ simplebarOld=function(xx,yy) {
 }
 
 simplebar=function(xx,yy,mypal="YlOrBr") {
-  q=ggplot(data.frame(xx,yy),aes(x=xx,fill=yy))+geom_bar(colour="black")+
+  q=ggplot(data.frame(xx,yy),aes(x=xx,fill=yy))+geom_bar(colour="black",position="fill")+
     scale_fill_brewer(guide = guide_legend(title=attr(yy,"label")),type="seq",palette=mypal,breaks=rev(levels(yy)))
   attr(q,"note")=""
   q
 }
 
+
+
 facet_labeller=function(var,value){
   value=str_wrap(value,8)
 }
 
+labb=function(x)ifelse(is.null(attr(x,"label")),deparse(substitute(x)),attr(x,"label"))
 
 
 #' Provide a simple bivariate test for two variables depending on the types of the variables. 
@@ -363,43 +342,43 @@ otest=function(xx,yy=NULL,spv=FALSE,...){
   
   if(length(unique(xx))<2 | length(unique(yy))<2) p else {
     
-
+    
+    
+    if(min(length(which(table(xx)!=0)),length(which(table(yy)!=0)))>1)  {
+      level1=classer(xx)
+      level2=classer(yy)
+      #         browser()
+      if(is.null(level1)) level1="nom"
+      if(is.null(level2)) level2="nom"
+      if(level1=="str") level1="nom"
+      if(level2=="str") level2="nom"
       
-      if(min(length(which(table(xx)!=0)),length(which(table(yy)!=0)))>1)  {
-        level1=classer(xx)
-        level2=classer(yy)
-#         browser()
-        if(is.null(level1)) level1="nom"
-        if(is.null(level2)) level2="nom"
-        if(level1=="str") level1="nom"
-        if(level2=="str") level2="nom"
+      if(class(try(do.call(paste0("otest_",level1,"_",level2),list(xx,yy,spv))))=="try-error") {
+        warning(paste("This test did not work",classer(xx),classer(yy)))
         
-if(class(try(do.call(paste0("otest_",level1,"_",level2),list(xx,yy,spv))))=="try-error") {
-  warning(paste("This test did not work",classer(xx),classer(yy)))
-  
-    p=NA
-    attr(p,"method")="Kruskal but failed"
-    attr(p,"estimate")=NA
-    attr(p,"PRE")=NA
-  
-  } 
-       else  
-    
-    p=do.call(paste0("otest_",level1,"_",level2),list(xx,yy,spv))
+        p=NA
+        attr(p,"method")="Kruskal but failed"
+        attr(p,"estimate")=NA
+        attr(p,"PRE")=NA
         
-
-        attr(p,"N")=nrow(na.omit(data.frame(xx,yy)))
-if(identical(xx,yy)) {attr(p,"PRE")=NA;attr(p,"estimate")=NA}
-      }
+      } 
+      else  
+        
+        p=do.call(paste0("otest_",level1,"_",level2),list(xx,yy,spv))
+      
+      
+      attr(p,"N")=nrow(na.omit(data.frame(xx,yy)))
+      if(identical(xx,yy)) {attr(p,"PRE")=NA;attr(p,"estimate")=NA}
+    }
     
-   
-  if(is.na(p) | is.nan(p))  {
-    p=NA
-    attr(p,"method")="Kruskal but failed"
-    attr(p,"estimate")=NA
-    attr(p,"PRE")=NA
-  } 
-
+    
+    if(is.na(p) | is.nan(p))  {
+      p=NA
+      attr(p,"method")="Kruskal but failed"
+      attr(p,"estimate")=NA
+      attr(p,"PRE")=NA
+    } 
+    
     attr(p,"phrase")=paste0(
       "Significance: ",
       xsig2(p[1]),
@@ -424,7 +403,7 @@ otest_con_con=function(xx,yy,spv=FALSE)
   attr(p,"method")="Pearson correlation"
   attr(p,"estimate")=as.vector(pp$estimate)
   attr(p,"PRE")=as.vector(pp$estimate)
-#   ES=pwr.r.test(n = nrow(na.omit(data.frame(xx,yy))), r = attr(p,"estimate"), sig.level = p, alternative = c("two.sided"))
+  #   ES=pwr.r.test(n = nrow(na.omit(data.frame(xx,yy))), r = attr(p,"estimate"), sig.level = p, alternative = c("two.sided"))
   p
 }   
 
@@ -435,9 +414,9 @@ otest_ord_ord=function(xx,yy,spv=FALSE)
   attr(p,"method")="Spearman rho."
   attr(p,"estimate")=pp$estimate
   attr(p,"PRE")=as.vector(pp$estimate) #debatable
-
   
-#   attr(p,"ES")=chies(pp$statistic,nrow(na.omit(data.frame(xx,yy))))$r
+  
+  #   attr(p,"ES")=chies(pp$statistic,nrow(na.omit(data.frame(xx,yy))))$r
   
   p
 } 
@@ -445,26 +424,26 @@ otest_ord_ord=function(xx,yy,spv=FALSE)
 
 otest_nom_nom=function(xx,yy,spv=FALSE)
 {      
-    pp=chisq.test(factor(xx),factor(yy),simulate.p.value=spv)
-    p=pp$p.value;attr(p,"method")="Chi-squared test"
-    attr(p,"estimate")=pp$statistic  
-#     tab=prop.table(table(xx,yy))
-#     attr(p,"ES")=chies(pp$statistic,nrow(na.omit(data.frame(xx,yy))))$r
+  pp=chisq.test(factor(xx),factor(yy),simulate.p.value=spv)
+  p=pp$p.value;attr(p,"method")="Chi-squared test"
+  attr(p,"estimate")=pp$statistic  
+  #     tab=prop.table(table(xx,yy))
+  #     attr(p,"ES")=chies(pp$statistic,nrow(na.omit(data.frame(xx,yy))))$r
   attr(p,"PRE")=as.vector(lambda.test(table(xx,yy),2) )#TODO check direction 2 or 1
   # Goodman and Kruskal's lambda
-
+  
   p
 } 
 
 
 otest_ord_con=function(yy,xx,spv=FALSE)
 {      
-    pp=anova(lm(xx~yy))
-    p=pp$"Pr(>F)"[1]
-    attr(p,"estimate")=pp[1,"F value"]
-    attr(p,"method")="ANOVA F"
-    attr(p,"PRE")=as.vector(cor.test(as.numeric(xx),as.numeric (yy),method="spearman")$estimate) #debatable
-    
+  pp=anova(lm(xx~yy))
+  p=pp$"Pr(>F)"[1]
+  attr(p,"estimate")=pp[1,"F value"]
+  attr(p,"method")="ANOVA F"
+  attr(p,"PRE")=as.vector(cor.test(as.numeric(xx),as.numeric (yy),method="spearman")$estimate) #debatable
+  
   p
 }   
 otest_con_ord=function(xx,yy,spv=F)otest_ord_con(yy,xx,spv) #note with lm it does not make any difference which way round they are
@@ -521,14 +500,14 @@ classer=function(x){
 #' you could argue that to be consistent with oplot it should take x and y as input not a dataframe of them. but this way it is easier to generalise to more 
 #' @family main omnivr functions
 #' @note At the moment, integer is treated as continuous.
-sankplot=function(mm,minedge=1,strw=12){
+sankplot=function(mm,minedge=1,strw=12,pastel=T){
   library(riverplot)
   mo=na.omit(mm)
   m=data.frame(sapply(mo,as.character),stringsAsFactors = F)
   m=data.frame(sapply(m,str_wrap,strw),stringsAsFactors = F)
   labels=unique(unlist(m))
   col=rainbow(length(labels))
-  col=colorRampPaletteAlpha(c( "#FF000033", "#00FF0033" ))(length(labels))
+  if(pastel)col=colorRampPaletteAlpha(c( "#FF000066", "#00FF0066" ))(length(labels))
   concol=data.frame(labels,col,stringsAsFactors = F)
   m=data.frame(t(apply(m,1,paste,1:2)),stringsAsFactors = F)
   colnames(m)=paste0("N",1:2)

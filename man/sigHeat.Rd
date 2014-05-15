@@ -28,7 +28,11 @@ Produces a heatmap
 Here are some examples
 }
 \seealso{
-Other experimental: \code{\link{loopr}};
-\code{\link{pseudocor}}
+Other experimental: \code{\link{dummy.code.lab}};
+\code{\link{findr}}; \code{\link{ggheat}};
+\code{\link{loopr2}}; \code{\link{loopr}};
+\code{\link{omnicor}}; \code{\link{outerF}};
+\code{\link{pseudocor}}; \code{\link{writeprop}};
+\code{\link{xt}}
 }
 

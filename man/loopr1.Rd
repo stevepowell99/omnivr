@@ -1,8 +1,8 @@
-\name{loopr}
-\alias{loopr}
+\name{loopr1}
+\alias{loopr1}
 \title{Loops through one or two datasets}
 \usage{
-loopr(xdat, ydat = NULL, fun = oplot, duplicatesOK = TRUE, ...)
+loopr1(xdat, fun = oplot, extra = NULL)
 }
 \arguments{
   \item{xdat}{dataset}
@@ -11,8 +11,6 @@ loopr(xdat, ydat = NULL, fun = oplot, duplicatesOK = TRUE, ...)
 
   \item{fun}{function e.g. correlation to relate the
   datasets}
-
-  \item{extra}{named vector of arguments to fun e.g.}
 
   \item{extra}{named vector of arguments to fun e.g.}
 }
@@ -27,10 +25,8 @@ Here are some examples
 }
 \seealso{
 Other experimental: \code{\link{dummy.code.lab}};
-\code{\link{findr}}; \code{\link{ggheat}};
-\code{\link{loopr2}}; \code{\link{omnicor}};
+\code{\link{ggheat}}; \code{\link{omnicor}};
 \code{\link{outerF}}; \code{\link{pseudocor}};
-\code{\link{sigHeat}}; \code{\link{writeprop}};
-\code{\link{xt}}
+\code{\link{sigHeat}}; \code{\link{xt}}
 }
 

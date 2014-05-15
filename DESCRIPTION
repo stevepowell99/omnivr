@@ -10,5 +10,6 @@ Imports:
     ggplot2,
     stringr, 
     reshape, 
-    RColorBrewer
+    RColorBrewer,
+    pwr
 License: MIT

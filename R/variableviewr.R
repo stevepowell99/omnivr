@@ -4,28 +4,50 @@
 #' from the attribute
 #' @param dat  dataset
 #' @param att the attribute
-#' @param equ the value of the attribute
+#' @param equ the value of the attribute. If equ is "list", then findr will return a list.
+#' @param datafilename useful if you are working with different data files. wprop applies this. Used by otrans and oprop when submitting a list of variables or blocks
 #' @family experimental
 #' @return A dataset
 #' 
 #' @examples Here are some examples
-findr=function(att="block",dat=data.r,equ="x"){
-  if(xmb(att)){
-    #     
-    d=dat[,sapply(dat,function(x)!is.na(attr(x,"anyblocks")))]
-  }  else {
+findr=function(att="block",dat=data.r,equ="x",datafilename="",...){
+
+    if(equ=="list") {
+      l=unique(sapply(dat,attr,att))
+      l=na.omit(l)
+#       browser()
+      d=lapply(l,function(x) findr_inner(att=att,dat=dat,equ=x,datafilename=datafilename,...))
+      names(d)=l
+
+    } else d=findr_inner(att,dat,equ,datafilename=datafilename,...)  
+
+ d
+}
+
+findr_inner=function(att="block",dat=data.r,equ="x",datafilename=""){
+  
+#       browser()
     x=equ==sapply(dat,attr,att)
     x[is.na(x)]=F
-    d=dat[,x]
-    if(equ=="x") eqx=NULL else eqx=equ
-    attr(d,"label")=paste(att,eqx,sep="")
-    attr(d,"blocktitle")=unique(na.omit(sapply(d,attr,"blocktitle"))) #could put in a warning if there are tow
-    
-  }
-#   browser()
-  if(nrow(d)==0 | ncol(d)==0) stop(cat("findr returned an empty block: ",att,equ))
+#         browser()
+    d=data.frame(dat[,x])
+   
+  
+  if(equ=="x") eqx=NULL else eqx=equ
+  attr(d,"label")=paste(att,eqx,sep=":")
+  attr(d,"datafilename")=datafilename
+  attr(d,"blocktitle")=unique(na.omit(sapply(d,attr,"blocktitle"))) #could put in a warning if there are tow
+  
+  
+  if(nrow(d)==0 | ncol(d)==0) warning(cat("findr returned an empty block: ",att,equ))
+  if(datafilename!="") d=data.frame(lapply(d,function(x){
+# browser()
+    attr(x,"datafilename")=datafilename
+    x
+  }))
   d
 }
+
 
 
 
@@ -327,14 +349,17 @@ variableviewr=function(nam="data",type="",winner="",labnames=NULL,method="quicke
 }
 
 
-wprop=function(nam="data",ftype="xl",type="",winner="",labnames,method="quicker",set_doclusters=F,onlyLoad=F){
+wprop=function(nam="data",ftype="xl",type="",winner="",labnames,method="quicker",assigndata.r=T,set_doclusters=F,onlyLoad=F){
   
   if(onlyLoad){
 #     data.r=readRDS(paste0(nam,".r"))
-    assign(paste0(nam,".r"),readRDS(paste0(nam,".r")),envir=.GlobalEnv)##reassign the new tidy colnames
+assign(paste0(nam,".r"),readRDS(paste0(nam,".r")),envir=.GlobalEnv)##reassign the new tidy colnames
 #     saveRDS(l,paste0(nam,".r"))# update tmp adding new cols if necessary
+if(file.exists(paste0(nam,".b")))assign(paste0(nam,".b"),readRDS(paste0(nam,".b")),envir=.GlobalEnv)#b=readRDS(paste0(nam,".b"))# 
+if(file.exists(paste0(nam,".s")))assign(paste0(nam,".s"),readRDS(paste0(nam,".s")),envir=.GlobalEnv)#s=readRDS(paste0(nam,".s"))# 
 
-#     blocks=readRDS("blocks")
+
+#     specials=readRDS("specials")
   } else {
     if(xmb(labnames))labnames=xc("varnames newvarnames label shortlabs ncol formula recode setlevout nt n1 n2 n3")
     nn=paste0("prop.",nam,".xls")
@@ -512,20 +537,20 @@ wprop=function(nam="data",ftype="xl",type="",winner="",labnames,method="quicker"
     
     
     lold=l
-    blocks=setdiff(colnames(ws),labnames)
-    nblocks=blocks[str_sub(blocks,1,1)!="."]
-    attr(l,"blocks")=blocks
+    specials=setdiff(colnames(ws),labnames)
+    nspecials=specials[str_sub(specials,1,1)!="."]
+    attr(l,"specials")=specials
     #   warning(winner)
     
     
-    if(set_doclusters){  for(block in attr(l,"blocks")){
+    if(set_doclusters){  for(special in attr(l,"specials")){
       #   
-      l=makeClus(l,att=block,match="x")
+      l=makeClus(l,att=special,match="x")
       
     }}
     #   browser()
-    attr(l,"blocks")=blocks
-    blocks<<-blocks #fixme hack needed for xpairs steve
+    attr(l,"specials")=specials
+    specials<<-specials #fixme hack needed for xpairs steve
     
     # stop()
     if(winner!="new"){ 
@@ -558,10 +583,10 @@ wprop=function(nam="data",ftype="xl",type="",winner="",labnames,method="quicker"
       #     
       i=colnames(l)[j]
       al=attributes(l[,i])
-      waln=((names(al) %in% nblocks)) 
+      waln=((names(al) %in% nspecials)) 
       walnn=al[waln]
       walnnn=walnn!="NA"
-      attr(l[,i],"anyblocks")=any(walnnn)
+      attr(l[,i],"anyspecials")=any(walnnn)
       #       browser()
       warning(i)
 #       if(xmb(classer(l[,i])))     stop("something wrong with classer function")
@@ -573,13 +598,121 @@ wprop=function(nam="data",ftype="xl",type="",winner="",labnames,method="quicker"
       }
     }
     
-    
+#     browser()
     assign(paste0(nam,".r"),l,envir=.GlobalEnv)# update tmp adding new cols if necessary
+    if(assigndata.r)assign(paste0("data.r"),l,envir=.GlobalEnv)# update tmp adding new cols if necessary
     #   stop("assinged data")
     saveRDS(l,paste0(nam,".r"))# update tmp adding new cols if necessary
     
-#     saveRDS(blocks,"blocks")
+    s=lapply(specials,function(x) x=findr(att=x,equ="list",datafilename=nam))
+    names(s)=specials
+    s<<-s
+    assign(paste0(nam,".s"),s,envir=.GlobalEnv) #more general version when dealing with several datasets
+    saveRDS(s,paste0(nam,".s"))# 
+
+
+    blocks<<-unlist(na.omit(unlist(unique(lapply(data.r,function(i)attr(i,"block"))))))
+    b<<-findr(equ="list",att="block",datafilename=nam)
+    saveRDS(b,paste0(nam,".b"))# 
+    assign(paste0(nam,".b"),b,envir=.GlobalEnv) #more general version when dealing with several datasets
+
+    assign(paste0("specials"),specials,envir=.GlobalEnv)
+
+#     saveRDS(specials,"specials")
   }    
   
 }
 
+
+
+ofix=function(x,  fixednames=xc("varnames ncol nt n1"),...){
+    subx <- substitute(x)
+    propname=paste0("prop.",subx)
+
+  raw=oprop2(x)
+  if(file.exists(propname)){
+  more=readRDS(propname)
+  rownames(more)=make.names(more[,1])
+#   both=merge(raw[,fixednames],more[,setdiff(colnames(more),fixednames)],by=0,all.x=T)
+  both=data.frame(raw[,fixednames],more[rownames(raw),setdiff(colnames(more),fixednames)],stringsAsFactors = F)
+} else {
+  both=raw
+}
+  if (is.name(subx)) 
+      subx <- deparse(subx)
+    if (!is.character(subx) || length(subx) != 1L) 
+      stop("'fix' requires a name")
+    parent <- parent.frame()
+    if (exists(subx, envir = parent, inherits = TRUE)) 
+      both <- edit(both, title = subx, edit.row.names = FALSE,factor.mode="character",...)
+#     else {
+#       x <- edit(function() {
+#       }, title = subx, ...)
+#       environment(x) <- .GlobalEnv
+#     }
+    changed=x
+    for(y in colnames(changed)){
+#       browser()
+      mostattributes(changed[,y])=as.list(both[y,])
+    }
+    changed=data.frame(changed,stringsAsFactors = F)
+    changed=data.frame(lapply(changed,function(i){
+      if(attr(i,"setlevout") %in% xc("n nom nominal")) i = factor(i,ordered=F)
+      if(attr(i,"setlevout") %in% xc("o ord ordinal")) i = factor(i,ordered=T)
+      if(attr(i,"setlevout") %in% xc("s str string")) i = as.character(i)
+      if(attr(i,"setlevout") %in% xc("c con continuous")) i = as.numeric(i)
+      i
+    }),stringsAsFactors = F)
+
+#     colnames(changed)=ifelse(sapply(both[,"newvarnames"],xmb),both[,"newvarnames"],colnames(changed))
+    saveRDS(both,file = propname)
+#     assign(subx, x, envir = .GlobalEnv)
+    assign(propname, both, envir = .GlobalEnv)
+    assign(paste0(subx,".raw"), x, envir = .GlobalEnv)
+    assign(paste0(subx), changed, envir = .GlobalEnv)
+    saveRDS(changed,paste0(subx,".raw"))
+}
+
+
+#' ofix also creates a properties object as well writing a corresponding properties file
+#' but although you can edit the properties object you have to write it to the file to ensure reproducibility.
+#' 
+#' from the attribute
+#' @param dat  dataset
+#' @param att the attribute
+#' @param equ the value of the attribute
+#' @family experimental
+#' @return A dataset
+#' 
+#' @examples Here are some examples
+writeprop=function(object=prop.data,file="prop.data"){
+  saveRDS(object,file)
+}
+
+
+oprop2=function(df,labnames=xc("varnames ncol nt n1 newvarnames label formula recode setlevout")){ #gets stuff from the data only
+  #   df=get(nam,envir=.GlobalEnv)
+  #   df<<-df
+  colnames(df)=make.names(colnames(df),unique=T)
+  ttt=sapply(colnames(df),function(xx){
+    x=df[,xx]
+    t=table(x)
+    tt=names(t[rev(order(t))])
+    sapply(labnames,function(y){
+      
+      if(y=="varnames") xx else {
+        if(y=="ncol") min(which(xx==colnames(df))) else {
+          if(y=="nt") length(unique(x)) else {
+            if(y=="n1") paste(tt[1:min(10,length(tt))],collapse=";;") else {
+              if(y=="n2") "" else {
+                if(y=="n3") "" else {
+                  if(y=="setlev") classer(x) else {
+                    if(y=="setlevout") classer(x) else {
+                      if(y=="label") ifelse(is.null(attr(x,"label")),xx,attr(x,"label")) else {
+                        a=attr(x,y)
+                        if(is.null(a)) '' else a
+                      }}}}}}}}}
+    })
+  })
+  t(ttt)
+}#it gets the possibly properties

@@ -1,8 +1,8 @@
-\name{pseudocor}
-\alias{pseudocor}
+\name{omnicor}
+\alias{omnicor}
 \title{Applies \code{otest} to each pair of vectors from two datasets, or within a single dataset}
 \usage{
-pseudocor(xdat, ydat = xdat)
+omnicor(xdat, ydat = xdat)
 }
 \arguments{
   \item{xdat}{dataset}
@@ -23,7 +23,7 @@ Here are some examples
 Other experimental: \code{\link{dummy.code.lab}};
 \code{\link{findr}}; \code{\link{ggheat}};
 \code{\link{loopr2}}; \code{\link{loopr}};
-\code{\link{omnicor}}; \code{\link{outerF}};
+\code{\link{outerF}}; \code{\link{pseudocor}};
 \code{\link{sigHeat}}; \code{\link{writeprop}};
 \code{\link{xt}}
 }

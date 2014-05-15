@@ -30,8 +30,8 @@ x=1.25;classer(x)
 
 }
 \seealso{
-Other main: \code{\link{omnivr}},
+Other main omnivr functions: \code{\link{omnivr}},
 \code{\link{omnivr-package}}; \code{\link{oplot}};
-\code{\link{otest}}
+\code{\link{otest}}; \code{\link{sankplot}}
 }
 

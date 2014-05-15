@@ -27,4 +27,7 @@ blue green") }
 xc("red green blue")
 xc("Croatia;Serbia;Bosnia and Herzegovina",sepp=";")
 }
+\seealso{
+Other utility functions: \code{\link{wplot}}
+}
 
