@@ -63,6 +63,7 @@ otest_nom_myNewDataType(nom,ord)
 \seealso{
 Other main omnivr functions: \code{\link{classer}};
 \code{\link{omnivr}}, \code{\link{omnivr-package}};
-\code{\link{oplot}}; \code{\link{sankplot}}
+\code{\link{oplot}}; \code{\link{sankplot}};
+\code{\link{worldmap}}
 }
 

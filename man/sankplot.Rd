@@ -21,6 +21,7 @@ At the moment, integer is treated as continuous.
 \seealso{
 Other main omnivr functions: \code{\link{classer}};
 \code{\link{omnivr}}, \code{\link{omnivr-package}};
-\code{\link{oplot}}; \code{\link{otest}}
+\code{\link{oplot}}; \code{\link{otest}};
+\code{\link{worldmap}}
 }
 

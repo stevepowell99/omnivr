@@ -4,10 +4,12 @@
 \usage{
 oplot(xx, yy = NULL, zz = NULL, ll = NULL, simple = FALSE,
   histlabs = T, na.rm = F, fillcolour = RColorBrewer::brewer.pal(3,
-  mypal)[2], mypal = "YlOrBr", sizefac = 15, reorder = F, xlabb = NULL,
-  ylabb = NULL, xlablen = 30, ylablen = 30, xbreakswrap = 50,
-  ybreakswrap = 50, sigLev = 0.01, xfilter = NULL, yfilter = NULL,
-  usemultichoicelabs = F, ...)
+  mypal)[2], mypal = "YlOrBr", sizefac = 15, reorder.x = F,
+  reorder.y = F, xlabb = NULL, ylabb = NULL, xlablen = 30,
+  ylablen = 30, xbreakswrap = 50, ybreakswrap = 50, sigLev = 0.01,
+  xfilter = NULL, yfilter = NULL, usemultichoicelabs = F, percent = F,
+  mosaic = F, graph = F, pie = F, position = "fill", printSig = F,
+  excludeSmall.x = 0.1, excludeSmall.y = 0.1, ...)
 }
 \arguments{
   \item{xx}{A vector, dataframe, table or list.}
@@ -53,6 +55,7 @@ Here are some examples
 \seealso{
 Other main omnivr functions: \code{\link{classer}};
 \code{\link{omnivr}}, \code{\link{omnivr-package}};
-\code{\link{otest}}; \code{\link{sankplot}}
+\code{\link{otest}}; \code{\link{sankplot}};
+\code{\link{worldmap}}
 }
 

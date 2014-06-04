@@ -11,9 +11,9 @@
 #' 
 #' @examples Here are some examples
 findr=function(att="block",dat=data.r,equ="x",datafilename="",...){
-
+# browser()
     if(equ=="list") {
-      l=unique(sapply(dat,attr,att))
+      l=unlist(unique(sapply(dat,attr,att)))
       l=na.omit(l)
 #       browser()
       d=lapply(l,function(x) findr_inner(att=att,dat=dat,equ=x,datafilename=datafilename,...))
@@ -33,11 +33,9 @@ findr_inner=function(att="block",dat=data.r,equ="x",datafilename=""){
     d=data.frame(dat[,x])
    
   
-  if(equ=="x") eqx=NULL else eqx=equ
-  attr(d,"label")=paste(att,eqx,sep=":")
-  attr(d,"datafilename")=datafilename
-  attr(d,"blocktitle")=unique(na.omit(sapply(d,attr,"blocktitle"))) #could put in a warning if there are tow
-  
+  if(equ=="x") eqx="" else eqx=equ
+# browser()
+
   
   if(nrow(d)==0 | ncol(d)==0) warning(cat("findr returned an empty block: ",att,equ))
   if(datafilename!="") d=data.frame(lapply(d,function(x){
@@ -45,6 +43,10 @@ findr_inner=function(att="block",dat=data.r,equ="x",datafilename=""){
     attr(x,"datafilename")=datafilename
     x
   }))
+    attr(d,"label")=paste(att,eqx,sep=":") # dont put whitespace cos of pandoc
+    attr(d,"datafilename")=datafilename
+    attr(d,"blocktitle")=unique(na.omit(sapply(d,attr,"blocktitle"))) #could put in a warning if there are tow
+
   d
 }
 
@@ -612,7 +614,9 @@ if(file.exists(paste0(nam,".s")))assign(paste0(nam,".s"),readRDS(paste0(nam,".s"
 
 
     blocks<<-unlist(na.omit(unlist(unique(lapply(data.r,function(i)attr(i,"block"))))))
+# browser()
     b<<-findr(equ="list",att="block",datafilename=nam)
+# browser()
     saveRDS(b,paste0(nam,".b"))# 
     assign(paste0(nam,".b"),b,envir=.GlobalEnv) #more general version when dealing with several datasets
 

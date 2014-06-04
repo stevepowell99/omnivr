@@ -23,8 +23,8 @@ Here are some examples
 Other experimental: \code{\link{dummy.code.lab}};
 \code{\link{findr}}; \code{\link{ggheat}};
 \code{\link{loopr2}}; \code{\link{loopr}};
-\code{\link{omnicor}}; \code{\link{outerF}};
-\code{\link{sigHeat}}; \code{\link{writeprop}};
-\code{\link{xt}}
+\code{\link{omnicor}}; \code{\link{otrans_inner}};
+\code{\link{outerF}}; \code{\link{sigHeat}};
+\code{\link{writeprop}}; \code{\link{xt}}
 }
 

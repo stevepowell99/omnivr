@@ -34,6 +34,6 @@ returned empty string does contain informative attributes.
 \seealso{
 Other main omnivr functions: \code{\link{classer}};
 \code{\link{oplot}}; \code{\link{otest}};
-\code{\link{sankplot}}
+\code{\link{sankplot}}; \code{\link{worldmap}}
 }
 
