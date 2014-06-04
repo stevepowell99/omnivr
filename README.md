@@ -6,5 +6,5 @@ library("devtools")
 
 install_github("omnivr", "stevepowell99")
 
-?quickplotr
+?oplot
 
