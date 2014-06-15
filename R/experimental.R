@@ -613,8 +613,8 @@ if(!is.null(oo$zz))zz=oo$zz
 #######################################
   ### so we pre-processed blocks and lists into ggnormal form ; now we can continue with the xx and yy processing
   #######################################
-p=otest(xx,yy)
 # browser()
+p=otest(xx,yy)
 ### it is just a single xx var for histograms:
   if (is.null(yy)) {
 ### tableout is true so we want to transform into a table, useful for e.g. map plots: 

@@ -720,3 +720,22 @@ oprop2=function(df,labnames=xc("varnames ncol nt n1 newvarnames label formula re
   })
   t(ttt)
 }#it gets the possibly properties
+
+
+oaddmargins=function(df,margins=1:2){
+#   browser()
+  if(1 %in% margins){
+    df=as.data.frame.matrix(df)
+  cs=colSums(df)
+  df[nrow(df)+1,]=cs
+  rownames(df)[nrow(df)]="Sum"
+  }
+  if(2 %in% margins){
+    rs=rowSums(df)
+  df[,ncol(df)+1]=rs
+  colnames(df)[ncol(df)]="Sum"
+  }
+  df
+  
+  
+}

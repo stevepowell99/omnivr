@@ -8,8 +8,9 @@ oplot(xx, yy = NULL, zz = NULL, ll = NULL, simple = FALSE,
   reorder.y = F, xlabb = NULL, ylabb = NULL, xlablen = 30,
   ylablen = 30, xbreakswrap = 50, ybreakswrap = 50, sigLev = 0.01,
   xfilter = NULL, yfilter = NULL, usemultichoicelabs = F, percent = F,
-  mosaic = F, graph = F, pie = F, position = "fill", printSig = F,
-  excludeSmall.x = 0.1, excludeSmall.y = 0.1, ...)
+  mosaic = F, graph = F, pie = F, position = "fill", nfacetcol = 5,
+  img = NULL, printSig = F, excludeSmall.x = NULL,
+  excludeSmall.y = NULL, ...)
 }
 \arguments{
   \item{xx}{A vector, dataframe, table or list.}

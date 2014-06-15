@@ -11,5 +11,6 @@ Imports:
     stringr, 
     reshape, 
     RColorBrewer,
+    pander,
     pwr
 License: MIT

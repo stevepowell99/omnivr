@@ -104,11 +104,13 @@ oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillco
                xbreakswrap=50,ybreakswrap=50,sigLev=.01,xfilter=NULL,yfilter=NULL,
                usemultichoicelabs=F,percent=F,mosaic=F,graph=F,pie=F,
                position="fill",
+               maxnomultiple=273,
                nfacetcol=5,
                img=NULL,
-               printSig=F,excludeSmall.x=.1,excludeSmall.y=.1,...){
+               printSig=F,excludeSmall.x=NULL,excludeSmall.y=NULL,...){
   # browser()
   #   if(identical(xx,yy)) return(NULL)
+#   browser()
   #   stop("lkj")
   msg=NULL
   isblock=F
@@ -126,7 +128,6 @@ oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillco
            excludeSmall.x=excludeSmall.x,
            excludeSmall.y=excludeSmall.y,
            usemultichoicelabs=usemultichoicelabs,reorder.x=reorder.x,reorder.y=reorder.y,...)
-#   browser()
   ## total hack for mosaic
   p=attr(o,"p")
   xx=o$xx
@@ -174,7 +175,7 @@ oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillco
       } 
       
       else if(classer(xx)=="con" & classer(yy)!="con"){
-        q=oplot_continuous_discrete(xx,yy,zz=zz,mypal=mypal,ylabb=ylabb)
+        q=oplot_continuous_discrete(xx,yy,zz=zz,mypal=mypal,ylabb=ylabb,position=position)
         ylabb="Proportion"
         
       }  
@@ -184,7 +185,8 @@ oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillco
 #   browser()
   if(ylabb=="NULL")ylabb=NULL
   if(is.null(ylabb))  q=q+ylab(ylabb) else q=q+ylab("") 
-    if(percent | mosaic)   q=q+ylab("Percent of alumni")+scale_fill_brewer(palette="YlOrBr",guide= guide_legend(title = ylabb,reverse=T) )#this can't go inside discrete_discrete_percent because the label gets lost
+    if((percent & position=="fill") | mosaic)   q=q+ylab("Percent of alumni in category") else if((position!="stack"))   q=q+ylab("Number")
+    if((percent ) | mosaic)   q=q+scale_fill_brewer(palette="YlOrBr",guide= guide_legend(title = ylabb,reverse=T) )#this can't go inside discrete_discrete_percent because the label gets lost
     else 
       if(pie)   q=q+ylab("")+scale_x_discrete(breaks=NULL)+scale_fill_brewer(palette="YlOrBr",guide= guide_legend(title = ylabb) )#this can't go inside discrete_discrete_percent because the label gets lost
 
@@ -214,22 +216,25 @@ oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillco
 
     attr(q,"note")=c(attr(q,"note"),msg)
     
-#     revLab=function(lab)which(sapply(a13.r,attr,"label")==lab)
-    
+#     browser()
 #     q=q+annotate(geom="text",x=min(xx,na.rm=T),y=0,hjust=0,vjust=-1,label=paste0(revLab(xlabb),"--",revLab(ylabb),xlabb,"--",ylabb))
+#     q=q+annotate(geom="text",x=0.15,y=0.15,hjust=-1,vjust=-1,label=paste0("N=",attr(p,"N")),size=3,colour="darkblue")
+    q=q+ggtitle(paste0("N=",attr(p,"N"),if(attr(p,"N")>maxnomultiple) " (multiple answers possible)" else ""))+theme(plot.title=element_text(size=rel(.6),colour="darkgreen"))
 
     q
   } 
 }
 
 
+    revLab=function(lab)which(sapply(a13.r,attr,"label")==lab)
 
-oplot_continuous_discrete=function(xx,yy,zz=NULL,mypal="YlOrBr",ylabb=""){
-  #   browser()
+
+oplot_continuous_discrete=function(xx,yy,zz=NULL,mypal="YlOrBr",ylabb="",position="fill"){
+    browser()
   library(scales)
   #   ggplot(data=data.frame(xx,yy),aes(yy,xx))+geom_violin(scale="count")+ stat_sum_df("mean_cl_boot",colour="orange")#smean.cl.boot is a very fast implementation of the basic nonparametric bootstrap for obtaining confidence limits for the population mean without assuming normality. These functions all delete NAs automatically.
   #   ggplot(data=dd,aes(x=dd[,1],y=dd[,2]))+geom_jitter(size=4,alpha=.3,colour="green",position = position_jitter(width = .2,height=.2))#+ stat_sum_df("mean_cl_boot",colour="orange")#
-  ggplot(data=data.frame(xx,yy),aes(x=xx,fill=yy))+geom_density(position="fill",colour="black")+
+  ggplot(data=data.frame(xx,yy),aes(x=xx,fill=yy))+geom_density(position=position,colour="black")+
     scale_fill_brewer(guide = guide_legend(title=ylabb)
                       ,type="seq",palette=mypal,breaks=rev(levels(yy)))+
     scale_y_continuous(labels=percent)
@@ -282,7 +287,7 @@ oplot_discrete_discrete_percent=function(xx,yy,zz=NULL,aa=aa,ll=NULL
   tmp2=data.frame(x2=xx,y2=yy,zz=zz,aa=aa,ll=ll,value=zz,large=ll)
   
 #   browser() 
-  if( all(aa==1)) { #all sizes the same so it must be a ggheat
+  if(F& all(aa==1)) { #all sizes the same so it must be a ggheat
     stop("this case not covered yet")
     
   } else {
@@ -299,8 +304,8 @@ if(!is.null(img)) {
   
   q=q+annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=max(tmp2$y2))
 } 
-q=q+geom_bar(stat="identity",position=position)+
-   scale_y_continuous( labels= percent )
+q=q+geom_bar(stat="identity",position=position)
+if(position!="stack")q=q+   scale_y_continuous( labels= percent) 
    
     attr(q,"note")="comlpete me"
     
@@ -375,33 +380,45 @@ zbar=function(xx,fillcolour=brewer.pal(3,"YlOrBr")[2],histlabs=T,img=NULL,sizefa
     
     q=q+annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf)
   } 
- q=q  +geom_histogram(fill=fillcolour)+
-    scale_y_continuous()+if(histlabs)stat_bin(aes(label=(..count..)), geom="text", vjust=1.4,position="identity",size=80/sizefac,colour="darkgreen") 
+ q=q + geom_bar(aes(y = (..count..)),fill=fillcolour) #+geom_histogram(fill=fillcolour)#+
+ if(histlabs){
+   q=q+    geom_text(aes(y = (..count..),label = omnivr::if0((..count..)/sum(..count..))), stat="bin",size=40/sizefac,colour="darkgreen") 
+ }
+#    if(histlabs)stat_bin(aes(label=ifelse((..count..)==0,"",(..count..)))
+#                                                                 , geom="text", vjust=0,position="identity",size=50/sizefac,colour="darkgreen") 
   attr(q,"nx")=length(unique(xx))
   attr(q,"note")="mynotekill"
-  xx=xx$xx
+#   xx=xx$xx
   
-  q=q+scale_x_discrete(breaks=levels(factor(xx)),labels=str_wrap(levels(factor(xx)),xbreakswrap))
+#   q=q+scale_x_discrete(breaks=levels(factor(xx)),labels=str_wrap(levels(factor(xx)),xbreakswrap))
 #   q=q+scale_y_discrete(breaks=levels(factor(yy)),labels=str_wrap(levels(factor(yy)),ybreakswrap)) 
   
   q
 }
+
+if0=function(x){
+#   browser()
+  ifelse(x==0,"", scales::percent(x))}
 
 opie=function(xx,fillcolour=brewer.pal(3,"YlOrBr")[2],histlabs=T,sizefac=9,na.omit=T,
               xbreakswrap=xbreakswrap,ybreakswrap=ybreakswrap,nfacetcol){
 #   browser()
   facet=T
   if(na.omit)xx=na.omit(xx)
-  xx=factor(xx,levels=levels(xx),ord=T)
-  xx=str_wrap(xx,xbreakswrap)
+  xx=factor(xx,levels=levels(xx),ordered = T)
+#   xx=str_wrap(xx,xbreakswrap) #switched off cos it loses the ordering
   df=data.frame(xx)
-q=ggplot(df,aes(x=factor(1),fill=xx))+
-  geom_bar(width=1,alpha=.8,position="stack")+coord_polar(theta="y")+
-  geom_rect(aes(xmin=0,ymin=0,xmax=.5,ymax=.8),stat="identity",fill="white")+
-  
-  scale_y_continuous(labels=xc("0% 25% 50% 75%"),breaks=nrow(df)*c(0,.25,.50,.75),limits=c(0,nrow(df)))+ 
-  theme(axis.text.x=element_text(size=6),strip.text=element_text(size=100/sizefac),strip.background = element_rect(fill="white",colour="white"),panel.border = element_rect(colour="white"))
-#         ,panel.border=element_rect(border.width=0))
+q=ggplot(df,aes(x=factor(1)))+ #took out ,fill=xx cos not needed mostly
+  geom_bar(width=1,alpha=.8,position="stack",fill=fillcolour)+coord_polar(theta="y")+
+  geom_rect(aes(xmin=0,ymin=0,xmax=.5,ymax=.8),stat="identity",fill="white") +  
+  scale_y_continuous(labels=xc(";;20%;;40%;;60%;;80%;;",sep=";"),breaks=nrow(df)*seq(0,.9,by=.1),limits=c(0,nrow(df)))+ 
+  theme(axis.text.x=element_text(size=4)
+        ,strip.text=element_text(size=100/sizefac)
+        ,strip.background = element_rect(fill="white",colour="white")
+        ,panel.background = element_rect(fill="white",colour="white")
+#         ,plot.background = element_rect(fill="lightgrey",colour="lightgrey")
+        ,panel.border = element_rect(colour="white")
+        )
 
 if(facet)q=q+facet_wrap(ncol = nfacetcol,~xx)+scale_fill_continuous(guide=F)
   attr(q,"note")="mynotekill"
@@ -515,17 +532,20 @@ labb=function(x)ifelse(is.null(attr(x,"label")),deparse(substitute(x)),attr(x,"l
 #' @example R/examples/ex-otest.R
 otest=function(xx,yy=NULL,spv=FALSE,...){
   p=1
+#   browser()
   warning(attr(xx,"ncol"),attr(yy,"ncol"))
   if(is.null(yy)){
     
     if(classer(xx) %in% xc("int con")){
       library(pander)
       attr(p,"description")=       paste0("Skewness=",round(skewness(xx,na.rm=T),digits=3),"; Kurtosis=",round(kurtosis(xx,na.rm=T),digits=3))
-    } else 
+    } else {
       attr(p,"description")=       {
         ux <- unique(xx)        
         paste0("Mode=",ux[which.max(tabulate(match(xx, ux)))]) #paste0("Median=",median(xx,na.rm=T),"; 
       }
+    }
+      attr(p,"N")=sum(!is.na(xx))
   }
   
   if(length(unique(xx))<2 | length(unique(yy))<2) p else {
@@ -693,6 +713,7 @@ sankplot=function(mm,minedge=1,strw=12,pastel=T){
   library(stringr)
   
   ## new version
+#   browser()
   mo=na.omit(mm)
   edges=mo[,c(2,1,3)]
   edges[,1]=paste(edges[,1],"1",sep="")
@@ -702,14 +723,13 @@ sankplot=function(mm,minedge=1,strw=12,pastel=T){
   
   ## same
 
-  edges=edges[edges$Value>minedge,]
   
   nodes=data.frame(rbind(
     cbind(paste(unique(edges$N1)),1),
     cbind(paste(unique(edges$N2)),2) #have to differentiate because the package will complain if nodes in 2 cols have same name
   ),stringsAsFactors=F)
   
-  
+#   browser()
   nodes$X2=as.numeric(nodes$X2)
   
   nodes$labels=sapply(nodes[,1],str_sub,1,-2)
@@ -722,7 +742,6 @@ sankplot=function(mm,minedge=1,strw=12,pastel=T){
 #   col=rev(terrain.colors(length(labels)))
   concol=data.frame(labels,col,stringsAsFactors=F)
   
-# browser()
   
   nodesc=join(nodes,concol,by="labels")
   colnames(nodesc)[1:2]=c("ID","x")
@@ -734,18 +753,46 @@ sankplot=function(mm,minedge=1,strw=12,pastel=T){
 # nodesc$ypos=""
 # fil1=nodesc$x==1
 # nodesc$ypos[fil1]=
-nodesc$labels=str_wrap(nodesc$labels,strw)
+
+## now to put percentages on the labels, not so easy
+# browser()
+edgesJ1=edges
+colnames(edgesJ1)[1]="ID"
+nodescJ1=na.omit(join(nodesc,edgesJ1))[,-5]
+edgesJ2=edges
+colnames(edgesJ2)[2]="ID"
+nodescJ2=na.omit(join(nodesc,edgesJ2,by="ID"))[,-5]
+
+prop1=round(with(nodescJ1,tapply(Value,ID,sum)*100/sum(Value)),1)
+prop2=round(with(nodescJ2,tapply(Value,ID,sum)*100/sum(Value)),1)
 
 
-  makeRiver(nodesc,edges)
+prop=c(prop1,prop2)
+prop=data.frame(ID=names(prop),prop)
+nodesc12=join(nodesc,prop)
+nodesc12$prop=paste0(" (",round(nodesc12$prop,1),"%)")
+
+nodesc12$labels=str_wrap(paste0(nodesc12$labels,nodesc12$prop),strw)
+# browser()
+cut=edges$Value>minedge
+edges=edges[cut,]
+en1=edges$N1
+en2=edges$N2
+
+nodesc12=nodesc12[(nodesc12$ID %in% en1 | nodesc12$x==2) & (nodesc12$ID %in% en2 | nodesc12$x==1),]
+
+  mr=makeRiver(nodesc12,edges)
+attr(mr,"N")=sum(edges$Value)
+  mr
 }
 
 
-psankplot=function(s,t1="Before AIMS",t2="Now",node_margin=.2,nodewidth=5){
+psankplot=function(s,t1="Before AIMS",t2="Now",t3=paste0("N=",attr(s,"N")),node_margin=.2,nodewidth=5){
 #   browser()
   plot(s,srt=0,nodewidth=nodewidth)
-  text(1,50,str_wrap(t1,32),cex=1,col = "red")
-  text(2,50,str_wrap(t2,32),cex=1,col="red")
+  text(1,50,str_wrap(t1,32),cex=1,col = "darkred")
+  text(2,50,str_wrap(t2,32),cex=1,col="darkred")
+  text(1.5,50,str_wrap(t3,32),cex=.8,col="darkgreen")
   box("figure")
   
 #   graphics.off()
