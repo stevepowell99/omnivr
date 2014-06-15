@@ -202,9 +202,6 @@ oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillco
       ,axis.title.y=element_text(size= rel(1.6),angle=0)
       ,axis.title.x=element_text(size=rel(1.6),angle=0)
       ,axis.text.x=element_text(angle=ifelse(classer(xx)=="con" | 20>nchar(paste(names(table(xx)),collapse="")),0,-90),hjust=0,size=if(pie)rel(.6) else rel(1.4))        
-      
-      
-      
     )
   #TODO a hack cos we dont have full support for integers
   if(!is.null(attr(xx,"setlevout"))) if(attr(xx,"setlevout")=="int") q=q+
