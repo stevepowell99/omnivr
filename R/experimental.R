@@ -59,6 +59,10 @@ xtpandoc=function(tab,caplev=3,cap="",addmargins=NULL,digits=0,justify="right",.
 ggheat <- function (xdat, ydat=xdat) { #,fun=pseudocor,smallestprop=.75,showblocks=F,maxYlab=95,matchreverse=F,ncoll=ncol(xdat),subtitle="",maintitle=""
   #   , showblocks, maxYlab, matchreverse, dist, maintitle, ncoll, subtitle
   library(stringr)
+  library(rapport)
+  library(reshape)
+  library(RColorBrewer)
+  
   
   xss=(sapply(xdat,function(x)max(table(x)))<1)
   if(any(xss)) {
@@ -101,10 +105,10 @@ ggheat <- function (xdat, ydat=xdat) { #,fun=pseudocor,smallestprop=.75,showbloc
   ###############
   
   qmn=namerows(data.frame(qm), col.name = "y")
-  qmm <- melt(qmn,id.vars = "y")
+  qmm <- reshape::melt(qmn,id.vars = "y")
   
   qs=namerows(data.frame(qsig), col.name = "y")
-  qsm <- melt(qs,id.vars = "y")
+  qsm <- reshape::melt(qs,id.vars = "y")
   colnames(qsm)[3] = "sig"
   
   qmmd=merge(qmm,qsm,by = xc("y variable"))
@@ -316,11 +320,11 @@ multimelt=function(a,b,nochars=xc("No no"),uselabs=T){
   db=data.frame(b,stringsAsFactors = F)#not needed;attr(db,"label")=attr(b,"label")
   dan=name_rows(da)
   dbn=name_rows(db)
-  ma=melt(dan,id=".rownames")
+  ma=reshape::melt(dan,id=".rownames")
   maf=filter(ma,!(value %in% nochars)) 
   if(length(dim(a))==2) maf$label=findlabs(maf$variable,da) else maf$label=maf$value
   
-  mb=melt(dbn,id=".rownames")
+  mb=reshape::melt(dbn,id=".rownames")
   mbf=filter(mb,!(value %in% nochars)) 
   if(length(dim(b))==2) mbf$label=findlabs(mbf$variable,db) else mbf$label=mbf$value
   
@@ -354,7 +358,7 @@ otrans_inner=function(xx,yy=NULL,zz=NULL,xfilter=NULL,yfilter=NULL
       if(is.table(xx)) if(length(attr(xx,"dimnames"))==2) xx=as.data.frame.matrix(xx) else stop("you gave me a table of more than two dimensions and I cant do that yet")
       ## it is actually a table-like dataframe or has just been transformed into one:
       xx$id=row.names(xx)
-      m=melt(xx,id="id")
+      m=reshape::melt(xx,id="id")
       xx=m[,1]    
       yy=m[,2]
       zz=as.numeric(m[,3])
@@ -368,14 +372,14 @@ otrans_inner=function(xx,yy=NULL,zz=NULL,xfilter=NULL,yfilter=NULL
       if(is.null(yy)){  #xx is a block and there is no y
         xxblock=xx
         yyblock=yy
-        m=melt(xx,id.vars = NULL )
+        m=reshape::melt(xx,id.vars = NULL )
         xx=m$variable
         xx=factor(findlabs(xx,xxblock))
         
         ##### it is a weird multichoice which could have been asked the other way round in which the same set of options is asked several times, like list your five qualifications
         if (!is.null(xfilter))if(xfilter=="list"){
           xx$id=row.names(xx)
-          m=melt(xx,id="id")
+          m=reshape::melt(xx,id="id")
           id=m$id
           xx=m$value
           stop("this does not work yet")
@@ -410,8 +414,8 @@ otrans_inner=function(xx,yy=NULL,zz=NULL,xfilter=NULL,yfilter=NULL
             
             if(length(dim(yy))!=2) { #y is just a var
               #           browser()
-              #         m=melt(data.frame(xx,yy),id.vars = colnames(xx) )
-              m=melt(data.frame(xx,yy),id.vars = "yy" )
+              #         m=reshape::melt(data.frame(xx,yy),id.vars = colnames(xx) )
+              m=reshape::melt(data.frame(xx,yy),id.vars = "yy" )
               m=m[m$value %in% xfilter,]
               xx=m$variable
               xx=factor(xx,labels=sapply(levels(factor(xx)),function(x){
@@ -485,10 +489,10 @@ otrans_inner=function(xx,yy=NULL,zz=NULL,xfilter=NULL,yfilter=NULL
           ###############
           
           qmn=namerows(data.frame(qm), col.name = "y")
-          qmm <- melt(qmn,id.vars = "y")
+          qmm <- reshape::melt(qmn,id.vars = "y")
           
           qs=namerows(data.frame(qsig), col.name = "y")
-          qsm <- melt(qs,id.vars = "y")
+          qsm <- reshape::melt(qs,id.vars = "y")
           colnames(qsm)[3] = "sig"
           
           qmmd=merge(qmm,qsm,by = xc("y variable"))
@@ -531,11 +535,11 @@ otrans_inner=function(xx,yy=NULL,zz=NULL,xfilter=NULL,yfilter=NULL
           db=data.frame(yy,stringsAsFactors = F)#not needed;attr(db,"label")=attr(b,"label")
           dan=name_rows(da)
           dbn=name_rows(db)
-          ma=melt(dan,id=".rownames")
+          ma=reshape::melt(dan,id=".rownames")
           maf=filter(ma,value %in% xfilter)
           if(length(dim(xx))==2) maf$label=findlabs(maf$variable,da) else maf$label=maf$value
           
-          mb=melt(dbn,id=".rownames")
+          mb=reshape::melt(dbn,id=".rownames")
           if(is.null(yfilter))mbf=mb else mbf=filter(mb,value %in% yfilter)
           if(length(dim(yy))==2) mbf$label=findlabs(mbf$variable,db) else mbf$label=mbf$value
           #         if(length(dim(yy))!=2) mbf$variable=mbf$value
@@ -560,8 +564,151 @@ if(xexists(zz))if(!is.null(zz))oo=data.frame(oo,zz)
   return(oo)
 }
 
+# take a bunch of vectors and add the ones which are not null into a df
+odf=function(ls){
+#   browser()
+  names=names(ls)
+  stopifnot(is.list(ls))
+  test=unlist(lapply(ls,function(x)!is.null(x)))  
+  df=data.frame(ls[test])
+  names(df)=names
+  df
+}
+
 
 otrans=function(xx,yy=NULL,zz=NULL,xfilter=NULL,yfilter=NULL
+                   ,mosaic=mosaic,aggregate=T,
+                   excludeSmall.x=0,
+                   excludeSmall.y=0,
+                   usemultichoicelabs=F,table=F,reorder.x=F,reorder.y=F,tableout=F){
+  library(dplyr)
+  if(!xexists(msg))msg=""
+  ## it is a list:
+  if (is.list(xx) & !is.data.frame(xx)){
+    
+    check=unlist(lapply(xx,function(i)length(dim(i))))
+    if(max(check)!=min(check)) stop ("You have given a list but they are not all the same type")
+    
+    tmp=lapply(1:length(xx),function(i){
+      data.frame(xx=reshape::melt(xx[[i]],id=NULL),yy=paste0(i,attr(xx[[i]],"datafilename"),""))
+      
+    })#so if the first one is a factor the next ones have to accommodate to it 
+    
+    #     tmp=lapply(xx,function(i)data.frame(reshape::melt(i,id=NULL),labb(i))) #so if the first one is a factor the next ones have to accommodate to it 
+    # note this works whether the members of xx are dataframes or just vectors
+    o=do.call(rbind,tmp)
+    
+    #   browser()
+    if(max(check)==2){
+      colnames(o)[1]="variable"
+      colnames(o)[2]="xx"
+      colnames(o)[3]="yy"
+      if(!is.null(xfilter)) {
+        o=o[o$value %in% xfilter,] 
+      } else { # either value is numeric, and we want to take a mean, or it is some factor or text and we just wnat to pick one
+        #         o=summarise(group_by(o,variable,labb.i.),mean(value))
+        o=summarise(group_by(o,xx,yy),length(yy))
+        zz=o[,3]
+      }
+    }
+    yy=factor(o[,2])
+    xx=factor(o[,1])
+    attr(xx,"label")=olabel(xx[[1]])# it gets the label of the first one
+    #   browser()
+    #     data.frame(xx,yy,zz) we don't return the value yet.
+    #     yy=o[,2]
+    
+  }  
+  
+  oo=otrans_inner(xx,yy=yy,zz=zz,xfilter=xfilter,yfilter=yfilter,table=F,msg=msg,mosaic=mosaic)
+  xx=oo$xx
+  if(ncol(oo)>1)yy=oo[,2]
+  if(!is.null(oo$zz))zz=oo$zz
+  
+  #######################################
+  ### so we pre-processed blocks and lists into ggnormal form ; now we can continue with the xx and yy processing
+  #######################################
+  # browser()
+  p=otest(xx,yy)
+  ### it is just a single xx var for histograms:
+  if (is.null(yy)) {
+    ### tableout is true so we want to transform into a table, useful for e.g. map plots: 
+    if(tableout){
+      oo=data.frame(table(xx))
+      colnames(oo)[2]="yy"
+      
+    } else oo=data.frame(xx)  
+  }else {
+    ### discrete_discrete
+    if(classer(xx)!="con" & classer(yy)!="con"){ 
+      ### z wasnt provided so we are going to get our statistics from the chisquared
+      if(aggregate & is.null(zz)){ 
+        #             browser()
+        tmp=na.omit(ddply(data.frame(xx,yy),xc("xx yy"),nrow))
+        if(!is.null(zz)) tmp$V1=zz
+        xt=xtabs(V1~xx+yy,data=tmp,drop.unused.levels=T)
+        ct=chisq.test(xt)$stdres
+        mr=reshape::melt(ct)
+        #       tmp2=merge(tmp,mr,all.x=T) gets the order mixed
+        tmp2=join(tmp,mr,type="left")
+        tmp2$ll=tmp2$V1#ifelse(rep(large,nrow(tmp2)),"",tmp2$V1)
+        tmp2$zz=tmp2$value
+        tmp2$aa=tmp2$ll 
+        
+        oo=(tmp2)
+        
+        if(!is.null(excludeSmall.x) | !is.null(excludeSmall.y)){
+          #           browser()
+          x.l=data.frame(table(xx)/nrow(oo))
+          df2=merge(oo,x.l)
+          y.l=data.frame(table(yy)/nrow(oo))
+          df2=merge(df2,y.l,by="yy")
+          df3=df2[df2$Freq.x>excludeSmall.x & df2$Freq.y>excludeSmall.y,]
+          df3$xx=droplevels(factor(df3$xx))
+          df3$yy=droplevels(factor(df3$yy))
+          oo=df3
+        }
+        
+        
+        
+      } 
+      ### zz was provided so we need to see how to summarise
+      else if(aggregate){ 
+        oo=na.omit(ddply(data.frame(xx=xx,yy=yy,zz),xc("xx yy"),summarise,ll=length(xx),zz=mean(zz,na.rm=T),aa=ll))
+        if(max(oo$ll)==1) oo$ll = round(oo$zz,1)  #in fact there was no summarising to do, so ll is just 1 everytwhere and we will use zz instead for labels
+        
+      }
+      
+      if(reorder.x | reorder.y)if(!mosaic){
+        ooo=oo[,xc("xx yy aa")]
+        qm=cast(ooo,xx~yy)
+        qm[is.na(qm)]=0
+        if(reorder.x)oo$xx=factor(oo$xx,levels=levels(xx)[hclust(dist((qm)))$order])
+        if(reorder.y)oo$yy=factor(oo$yy,levels=levels(yy)[hclust(dist(t(qm)))$order])
+      }
+      
+    } else if(classer(xx)!="con" & classer(yy)=="con"){
+      #     stop("hoory")
+      oo=na.omit(ddply(data.frame(xx=xx,yy=yy),xc("xx"),summarise,ll=length(xx),yy=mean(yy,na.rm=T),aa=ll))
+      #     if(max(oo$ll)==1) oo$ll = round(oo$zz,1)  #in fact there was no summarising to do, so ll is just 1 everytwhere and we will use zz instead for labels
+    }
+    ### what is left is that x is a single var and y is not null and they are not both discrete
+    else  
+    {
+      oo=data.frame(xx,yy)
+    }
+  }
+  # browser()
+  
+  
+  attr(oo,"p")=p
+  
+  oo
+}
+
+
+
+otransOLD=function(xx,yy=NULL,zz=NULL,xfilter=NULL,yfilter=NULL
                 ,mosaic=mosaic,aggregate=T,
                 excludeSmall.x=0,
                 excludeSmall.y=0,
@@ -575,11 +722,11 @@ if (is.list(xx) & !is.data.frame(xx)){
   if(max(check)!=min(check)) stop ("You have given a list but they are not all the same type")
   
   tmp=lapply(1:length(xx),function(i){
-    data.frame(xx=melt(xx[[i]],id=NULL),yy=paste0(i,attr(xx[[i]],"datafilename"),""))
+    data.frame(xx=reshape::melt(xx[[i]],id=NULL),yy=paste0(i,attr(xx[[i]],"datafilename"),""))
     
   })#so if the first one is a factor the next ones have to accommodate to it 
   
-  #     tmp=lapply(xx,function(i)data.frame(melt(i,id=NULL),labb(i))) #so if the first one is a factor the next ones have to accommodate to it 
+  #     tmp=lapply(xx,function(i)data.frame(reshape::melt(i,id=NULL),labb(i))) #so if the first one is a factor the next ones have to accommodate to it 
   # note this works whether the members of xx are dataframes or just vectors
   o=do.call(rbind,tmp)
   
@@ -633,7 +780,7 @@ p=otest(xx,yy)
       if(!is.null(zz)) tmp$V1=zz
       xt=xtabs(V1~xx+yy,data=tmp,drop.unused.levels=T)
       ct=chisq.test(xt)$stdres
-      mr=melt(ct)
+      mr=reshape::melt(ct)
 #       tmp2=merge(tmp,mr,all.x=T) gets the order mixed
       tmp2=join(tmp,mr,type="left")
       tmp2$ll=tmp2$V1#ifelse(rep(large,nrow(tmp2)),"",tmp2$V1)

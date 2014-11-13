@@ -227,7 +227,7 @@ oplot=function(xx,yy=NULL,zz=NULL,ll=NULL,simple=FALSE,histlabs=T,na.rm=F,fillco
 
 
 oplot_continuous_discrete=function(xx,yy,zz=NULL,mypal="YlOrBr",ylabb="",position="fill"){
-    browser()
+#     browser()
   library(scales)
   #   ggplot(data=data.frame(xx,yy),aes(yy,xx))+geom_violin(scale="count")+ stat_sum_df("mean_cl_boot",colour="orange")#smean.cl.boot is a very fast implementation of the basic nonparametric bootstrap for obtaining confidence limits for the population mean without assuming normality. These functions all delete NAs automatically.
   #   ggplot(data=dd,aes(x=dd[,1],y=dd[,2]))+geom_jitter(size=4,alpha=.3,colour="green",position = position_jitter(width = .2,height=.2))#+ stat_sum_df("mean_cl_boot",colour="orange")#
@@ -528,6 +528,7 @@ labb=function(x)ifelse(is.null(attr(x,"label")),deparse(substitute(x)),attr(x,"l
 #' @return The p-value, with additional information provided as attributes.
 #' @example R/examples/ex-otest.R
 otest=function(xx,yy=NULL,spv=FALSE,...){
+  library(rapport)
   p=1
 #   browser()
   warning(attr(xx,"ncol"),attr(yy,"ncol"))
@@ -688,7 +689,8 @@ otest_nom_str= otest_nom_nom
 #' @note At the moment, integer is treated as continuous.
 classer=function(x){
   y=class(x)[1]
-  s=switch(EXPR=y,"integer"="con","factor"="nom","character"="str","numeric"="con","ordered"="ord","logical"="log")
+  s=switch(EXPR=y,"integer"="con","factor"="nom","character"="str","numeric"="con","ordered"="ord","logical"="log","labelled"="nom")
+  if(is.numeric(x))s="con"
   att=attr(x,"setlevout")
   if(!is.null(att)) if(!(att %in% xc("con nom str con ord int"))) s=att #you can't force a variable to be one of these types if it is not
   s
